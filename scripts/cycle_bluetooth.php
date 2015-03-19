@@ -33,7 +33,7 @@ $bts_cmd = 'hcitool scan | grep ":"';
 $first_run    = 1;
 $skip_counter = 0;
 
-echo "Running bluetooth scanner\n";
+echo date("Y-m-d H:i:s") . "Running bluetooth scanner\n";
  
 while(1) 
 {
