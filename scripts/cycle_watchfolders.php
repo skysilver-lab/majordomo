@@ -21,7 +21,7 @@ include_once(DIR_MODULES . 'watchfolders/watchfolders.class.php');
 $watchfolders = new watchfolders();
 
 $checked_time=0;
-echo date("H:i:s") . " running " . basename(__FILE__) . "\n";
+echo date("Y-m-d H:i:s") . " running " . basename(__FILE__) . "\n";
 
 while(1) 
 {

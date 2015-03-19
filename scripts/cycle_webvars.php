@@ -22,7 +22,7 @@ $webvars = new webvars();
 
 $checked_time=0;
 
-echo date("H:i:s") . " running " . basename(__FILE__) . "\n";
+echo date("Y-m-d H:i:s") . " running " . basename(__FILE__) . "\n";
 while(1) 
 {
    if (time()-$checked_time>10) {
