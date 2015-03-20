@@ -154,5 +154,5 @@ while (false !== ($result = $threads->iteration()))
 
 // closing database connection
 $db->Disconnect(); 
-
+echo date("Y-m-d H:i:s ") . "Unexpected stopping " . basename(__FILE__) . "\n";
 ?>

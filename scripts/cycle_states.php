@@ -19,12 +19,13 @@ $ctl = new control_modules();
 $checked_time=0;
 
 if ($_GET['once']) {
+ echo date("Y-m-d H:i:s") . " running " . basename(__FILE__) . " once ";
  $last_run=getGlobal((str_replace('.php', '', basename(__FILE__))).'Run');
  if ((time()-$last_run)>5*60) {
   setGlobal((str_replace('.php', '', basename(__FILE__))).'Run', time(), 1);
   cycleBody();
  }
- echo "OK";
+ echo "OK\n";
 } else {
  echo date("Y-m-d H:i:s") . " running " . basename(__FILE__) . "\n";
  while(1) {
@@ -40,6 +41,10 @@ if ($_GET['once']) {
    }
    sleep(1);
  }
+ $db->Disconnect(); 
+
+ echo date("Y-m-d H:i:s ") . "Unexpected stopping " . basename(__FILE__) . "\n";
+
  DebMes("Unexpected close of cycle: " . basename(__FILE__));
 }
 
@@ -55,7 +60,7 @@ if ($_GET['once']) {
   
       if ($new_state!=$old_state) 
       {
-         echo $objects[$i]['TITLE'] . " state changed to " . $new_state . "\n";
+         echo date("Y-m-d H:i:s ") . $objects[$i]['TITLE'] . " state changed to " . $new_state . "\n";
          $params=array('STATE'=>$new_state);
          callMethod($objects[$i]['TITLE'] . '.stateChanged', $params);
       }

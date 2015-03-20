@@ -185,6 +185,7 @@ while(1)
    if (file_exists('./reboot') || $_GET['onetime']) 
    {
       $db->Disconnect();
+      echo date("Y-m-d H:i:s ") . "Stopping by command REBOOT " . basename(__FILE__) . "\n";
       exit;
    }
   
@@ -193,5 +194,9 @@ while(1)
 
 // closing database connection
 $db->Disconnect(); 
+
+echo date("Y-m-d H:i:s ") . "Unexpected stopping " . basename(__FILE__) . "\n";
+
+DebMes("Unexpected close of cycle: " . basename(__FILE__));
 
 ?>

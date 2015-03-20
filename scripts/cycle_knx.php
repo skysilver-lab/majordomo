@@ -22,7 +22,7 @@ $knx = new knxdevices();
 $knx->getConfig();
 
 if (!$knx->config['API_ENABLE']) {
- echo "KNX/EIB API is turned off";
+ echo date("Y-m-d H:i:s ") . "KNX/EIB API is turned off";
  exit; // no API URL set
 }
 
@@ -32,7 +32,7 @@ for($i=0;$i<3;$i++) {
   $connected=1;
   break;
  } else {
-  echo "Cannot connect to EIB/KNX API\n";
+  echo date("Y-m-d H:i:s ") . "Cannot connect to EIB/KNX API\n";
   sleep(3);
  }
 }
@@ -43,7 +43,7 @@ if ($connected) {
  $knx_data->getConfig();
 
  if (!$knx_data->config['API_ENABLE']) {
-  echo "KNX/EIB API is turned off";
+  echo date("Y-m-d H:i:s ") . "KNX/EIB API is turned off";
   exit; // no API URL set
  }
 
@@ -53,7 +53,7 @@ if ($connected) {
    $connected=1;
    break;
   } else {
-   echo "Cannot connect to EIB/KNX API\n";
+   echo date("Y-m-d H:i:s ") . "Cannot connect to EIB/KNX API\n";
    sleep(3);
   }
  }
@@ -64,7 +64,7 @@ if (!$connected) {
  exit;
 }
 
-echo date("H:i:s") . " running " . basename(__FILE__) . "\n";
+echo date("Y-m-d H:i:s ") . " running " . basename(__FILE__) . "\n";
 
 $buf = new EIBBuffer;
 $status=$knx->connection->EIBOpenVBusmonitorText();
@@ -133,11 +133,17 @@ while(1)
       $knx->disconnect();
       $knx_data->disconnect();
       $db->Disconnect();
+      echo date("Y-m-d H:i:s ") . "Stopping by command REBOOT " . basename(__FILE__) . "\n";
       exit;
    }
 
 //   sleep(1);
 }
 
+$db->Disconnect(); 
+
+echo date("Y-m-d H:i:s ") . "Unexpected stopping " . basename(__FILE__) . "\n";
+
 DebMes("Unexpected close of cycle: " . basename(__FILE__));
 
+?>
