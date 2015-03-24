@@ -46,7 +46,7 @@ while(1)
   
    if ($m!=$old_minute) 
    {
-      echo echo date("H:i:s ") . "new minute\n";
+      echo date("H:i:s ") . "new minute\n";
       $objects = SQLSelect("SELECT ID, TITLE FROM objects WHERE $o_qry");
       $total   = count($objects);
    
@@ -62,7 +62,7 @@ while(1)
   
    if ($h!=$old_hour) 
    {
-      echo date("H:i:s ") . echo "new hour\n";
+      echo date("H:i:s ") . "new hour\n";
       $old_hour = $h;
       $objects  = SQLSelect("SELECT ID, TITLE FROM objects WHERE $o_qry");
       $total    = count($objects);
@@ -73,7 +73,7 @@ while(1)
    
    if ($dt != $old_date) 
    {
-      echo date("Y-m-d H:i:s") . "new day\n";
+      echo date("Y-m-d H:i:s") . " new day\n";
       $old_date = $dt;
    }
 
