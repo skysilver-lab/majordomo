@@ -48,7 +48,7 @@ $connect=new connect();
 $connect->getConfig();
 
 if (!$connect->config['CONNECT_SYNC']) {
- echo "Connect sync turned off.";
+ echo date("Y-m-d H:i:s") . " Connect sync turned off. \n";
  exit;
 } else {
  //global $send_menu;
