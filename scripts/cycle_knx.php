@@ -22,7 +22,7 @@ $knx = new knxdevices();
 $knx->getConfig();
 
 if (!$knx->config['API_ENABLE']) {
- echo date("Y-m-d H:i:s ") . "KNX/EIB API is turned off";
+ echo date("Y-m-d H:i:s ") . "KNX/EIB API is turned off\n";
  exit; // no API URL set
 }
 

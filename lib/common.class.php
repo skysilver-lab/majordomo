@@ -540,36 +540,32 @@
 *
 * @access public
 */
- function playSound($filename, $exclusive=0, $priority=0) {
+function playSound($filename, $exclusive=0, $priority=0)
+{
+   global $ignoreSound;
 
-  global $ignoreSound;
+   if (file_exists(ROOT.'sounds/'.$filename.'.mp3'))
+      $filename = ROOT .'sounds/'.$filename.'.mp3';
+   elseif (file_exists(ROOT.'sounds/'.$filename))
+      $filename=ROOT.'sounds/'.$filename;
 
-  if (file_exists(ROOT.'sounds/'.$filename.'.mp3')) {
-   $filename=ROOT.'sounds/'.$filename.'.mp3';
-  } elseif (file_exists(ROOT.'sounds/'.$filename)) {
-   $filename=ROOT.'sounds/'.$filename;
-  }
+   if (defined('SETTINGS_HOOK_BEFORE_PLAYSOUND') && SETTINGS_HOOK_BEFORE_PLAYSOUND != '')
+      eval(SETTINGS_HOOK_BEFORE_PLAYSOUND);
 
-  if (defined('SETTINGS_HOOK_BEFORE_PLAYSOUND') && SETTINGS_HOOK_BEFORE_PLAYSOUND!='') {
-   eval(SETTINGS_HOOK_BEFORE_PLAYSOUND);
-  }
-
-  if (!$ignoreSound) {
-   if (file_exists($filename)) {
-    if (substr(php_uname(), 0, 7) == "Windows") {
-     safe_exec(DOC_ROOT.'/rc/madplay.exe '.$filename, $exclusive, $priority);
-    } else {
-     safe_exec('mplayer ' . $filename, $exclusive, $priority);
-    }
+   if (!$ignoreSound)
+   {
+      if (file_exists($filename))
+      {
+         if (IsWindowsOS())
+            safe_exec(DOC_ROOT.'/rc/madplay.exe '.$filename, $exclusive, $priority);
+         else
+            safe_exec('mplayer ' . $filename, $exclusive, $priority);
+      }
    }
-  }
 
-  if (defined('SETTINGS_HOOK_AFTER_PLAYSOUND') && SETTINGS_HOOK_AFTER_PLAYSOUND!='') {
-   eval(SETTINGS_HOOK_AFTER_PLAYSOUND);
-  }
-
-
- }
+   if (defined('SETTINGS_HOOK_AFTER_PLAYSOUND') && SETTINGS_HOOK_AFTER_PLAYSOUND!='')
+      eval(SETTINGS_HOOK_AFTER_PLAYSOUND);
+}
 
 /**
 * Title
@@ -641,6 +637,8 @@
   $cache_file=ROOT.'cached/urls/'.preg_replace('/\W/is', '_', str_replace('http://', '', $url)).'.html';
   if (!$cache || !is_file($cache_file) || ((time()-filemtime($cache_file))>$cache)) {
    //download
+  try {
+
    $ch = curl_init();
    curl_setopt($ch, CURLOPT_URL, $url);
    curl_setopt($ch, CURLOPT_USERAGENT, 'Opera/9.80 (Windows NT 6.1; WOW64) Presto/2.12.388 Version/12.14');
@@ -659,12 +657,19 @@
    curl_setopt($ch, CURLOPT_COOKIEFILE, $tmpfname);
 
    $result = curl_exec($ch);
+
+  } catch(Exception $e){
+   registerError('geturl', $url.' '.get_class($e).', '.$e->getMessage());
+  }
+
+
    if ($cache>0) {
     if (!is_dir(ROOT.'cached/urls')) {
      @mkdir(ROOT.'cached/urls', 0777);
     }
     SaveFile($cache_file, $result);
    }
+
   } else {
    $result=LoadFile($cache_file);
   }
@@ -695,23 +700,28 @@
 *
 * @access public
 */
- function execInBackground($cmd) {
-    if (substr(php_uname(), 0, 7) == "Windows"){
-        //pclose(popen("start /B ". $cmd, "r")); 
-         try {
-          //pclose(popen("start /B ". $cmd, "r")); 
-          system($cmd);
-          //$WshShell = new COM("WScript.Shell");
-          //$oExec = $WshShell->Run("cmd /C ".$cmd, 0, false);
-          //exec($cmd);
-         } catch(Exception $e){
-          DebMes('Error: exception '.get_class($e).', '.$e->getMessage().'.');
-         }
-
-    }
-    else {
-        exec($cmd . " > /dev/null &");  
-    }
+function execInBackground($cmd)
+{
+   if (IsWindowsOS())
+   {
+      //pclose(popen("start /B ". $cmd, "r")); 
+      try
+      {
+         //pclose(popen("start /B ". $cmd, "r")); 
+         system($cmd);
+         //$WshShell = new COM("WScript.Shell");
+         //$oExec = $WshShell->Run("cmd /C ".$cmd, 0, false);
+         //exec($cmd);
+      }
+      catch(Exception $e)
+      {
+         DebMes('Error: exception '.get_class($e).', '.$e->getMessage().'.');
+      }
+   }
+   else
+   {
+      exec($cmd . " > /dev/null &");  
+   }
 } 
 
  function getFilesTree($destination,$sort='name') {
@@ -823,3 +833,14 @@
   }
  }
 
+/**
+  * Возвращает true если ОС - Windows
+  * @return bool
+  */
+function IsWindowsOS()
+{
+   if (substr(php_uname(), 0, 7) === "Windows") 
+      return true;
+
+   return false;
+}

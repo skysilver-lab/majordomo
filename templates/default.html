@@ -32,8 +32,7 @@
 
                                 <td width="90%" align="right">
                                 <!--#[#inc vlc_object.html#]#-->
-                                [#module name="app_player"#]
-                                
+                                <!--#[#module name="app_player"#]#-->                                
                                 </td>
   <!--#
   <td valign="top" nowrap>
@@ -44,7 +43,11 @@
 
   <table border="0" align="right">
    <tr>
-    <td nowrap><a href="<#ROOTHTML#>admin.php" class="btn btn-default"><#LANG_CONTROL_PANEL#></a></td>
+    <td><a href="<#ROOTHTML#>admin.php" target=_blank class="btn btn-default"><i class="glyphicon glyphicon-cog"></i></a></td>
+	<td><a href="<#LANG_WIKI_URL#>" target=_blank class="btn btn-default"><i class="glyphicon glyphicon-globe"></i></a></td>
+	<td><a href="<#ROOTHTML#>popup/xray.html" target=_blank class="btn btn-default"><i class="glyphicon glyphicon-dashboard"></i></a></td>
+    </td>
+  <!--#
   <form action="<#ROOTHTML#>" method="get" name="frmSettings">
   [#if HIDE_TERMINALS!="1"#]
   <td valign="top" nowrap>
@@ -57,6 +60,7 @@
    </select>
   </td>
   [#endif#]
+  #-->
   <!--#
   [#if HIDE_USERS!="1"#]
   <td valign="top" nowrap>
@@ -69,17 +73,9 @@
    </select>
   </td>
   [#endif#]
-  #-->
   </form>
+  #-->
    </tr>
-   <!--#
-   <tr>
-    <td valign="top" colspan="3" align="right" nowrap>
-    <a href="<#LANG_WIKI_URL#>" target=_blank>MajorDoMo Project</a>
-    <a href="<#ROOTHTML#>popup/xray.html" target=_blank>X-Ray</a>
-    </td>
-   </tr>
-   #-->
   </table>
   </td>
   <td valign="top">
