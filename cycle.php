@@ -18,6 +18,7 @@ set_time_limit(0);
 $connected = 0;
 while(!$connected) 
 {
+   echo "Connecting to database...\n";
    $connected = @mysql_connect(DB_HOST, DB_USER, DB_PASSWORD);
    sleep(5);
 }
@@ -40,8 +41,11 @@ include_once(DIR_MODULES."control_modules/control_modules.class.php");
 
 $ctl = new control_modules();
 
+
 echo date("Y-m-d H:i:s ") . "Running startup maintenance\n";
+$run_from_start = 1;
 include("./scripts/startup_maintenance.php");
+$run_from_start = 0;
 
 getObject('ThisComputer')->raiseEvent("StartUp");
 
@@ -65,15 +69,10 @@ if ($lib_dir = @opendir("./scripts"))
 
 $threads = new Threads;
 
-if (defined('PATH_TO_PHP')) {
- $threads->phpPath = PATH_TO_PHP;
-} else {
- if (substr(php_uname(), 0, 7) == "Windows") {
-  $threads->phpPath = '..\server\php\php.exe';
- } else {
-  $threads->phpPath = 'php';
- }
-}
+if (defined('PATH_TO_PHP'))
+   $threads->phpPath = PATH_TO_PHP;
+else
+   $threads->phpPath = IsWindowsOS() ? '..\server\php\php.exe' : 'php';
 
 foreach($cycles as $path) 
 {
@@ -85,7 +84,7 @@ foreach($cycles as $path)
       if ((preg_match("/_X/", $path))) 
       {
          //для начала убедимся, что мы в Линуксе. Иначе удаленный запуск этих скриптов не делаем
-         if (substr(php_uname(), 0, 5) == "Linux") 
+         if (!IsWindowsOS()) 
          {
             $display = '101';
       
