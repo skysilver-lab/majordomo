@@ -41,11 +41,10 @@ include_once(DIR_MODULES."control_modules/control_modules.class.php");
 
 $ctl = new control_modules();
 
-
-echo date("Y-m-d H:i:s ") . "Running startup maintenance\n";
-$run_from_start = 1;
+echo "Running startup maintenance\n";
+$run_from_start=1;
 include("./scripts/startup_maintenance.php");
-$run_from_start = 0;
+$run_from_start=0;
 
 getObject('ThisComputer')->raiseEvent("StartUp");
 
