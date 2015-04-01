@@ -398,7 +398,7 @@
   $jobs=SQLSelect("SELECT * FROM jobs WHERE PROCESSED=0 AND EXPIRED=0 AND RUNTIME<='".date('Y-m-d H:i:s')."'");
   $total=count($jobs);
   for($i=0;$i<$total;$i++) {
-   echo "Running job: ".$jobs[$i]['TITLE']."\n";
+   echo date("Y-m-d H:i:s ")." Running job: ".$jobs[$i]['TITLE']."\n";
    $jobs[$i]['PROCESSED']=1;
    $jobs[$i]['STARTED']=date('Y-m-d H:i:s');
    SQLUpdate('jobs', $jobs[$i]);

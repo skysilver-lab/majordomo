@@ -32,7 +32,7 @@ $db = new mysql(DB_HOST, '', DB_USER, DB_PASSWORD, DB_NAME);
  
 include_once("./load_settings.php");
 
-echo "CONNECTED TO DB\n";
+echo date("Y-m-d H:i:s ") . "CONNECTED TO DB\n";
 
 SQLExec("DROP TABLE IF EXISTS `cached_values`;");
 SQLExec("CREATE TABLE IF NOT EXISTS `cached_values` (`KEYWORD` char(100) NOT NULL,`DATAVALUE` char(255) NOT NULL,`EXPIRE` datetime NOT NULL,PRIMARY KEY (`KEYWORD`)) ENGINE=MEMORY DEFAULT CHARSET=utf8;");
@@ -78,7 +78,7 @@ foreach($cycles as $path)
    if (file_exists($path)) 
    {
       DebMes("Starting ".$path." ... ");
-      echo "Starting ".$path." ... ";
+      echo date("Y-m-d H:i:s ") . "Starting ".$path." ... ";
    
       if ((preg_match("/_X/", $path))) 
       {
@@ -111,7 +111,7 @@ foreach($cycles as $path)
    }
 }
 
-echo "ALL CYCLES STARTED\n";
+echo date("Y-m-d H:i:s ") . "ALL CYCLES STARTED\n";
 
 if (!is_array($restart_threads)) {
  $restart_threads=array(
@@ -137,7 +137,7 @@ while (false !== ($result = $threads->iteration()))
        if (preg_match('/'.$item.'/is', $closed_thread)) {
         //restart
         DebMes("RESTARTING: ".$closed_thread);
-        echo "RESTARTING: ".$closed_thread."\n";
+        echo date("Y-m-d H:i:s ") . "RESTARTING: ".$closed_thread."\n";
         registerError('cycle_stop', $closed_thread);
         $pipe_id = $threads->newThread($closed_thread);
        }
@@ -147,10 +147,9 @@ while (false !== ($result = $threads->iteration()))
    }
 }
 
-
 @unlink('./reboot');
 
 // closing database connection
 $db->Disconnect(); 
-
+echo date("Y-m-d H:i:s ") . "Unexpected stopping " . basename(__FILE__) . "\n";
 ?>

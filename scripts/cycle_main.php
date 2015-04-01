@@ -30,7 +30,7 @@ $old_date   = date('Y-m-d');
 
 $checked_time=0;
 
-echo date("H:i:s") . " running " . basename(__FILE__) . "\n";
+echo date("Y-m-d H:i:s") . " running " . basename(__FILE__) . "\n";
 
 while(1) 
 {
@@ -46,7 +46,7 @@ while(1)
   
    if ($m!=$old_minute) 
    {
-      echo "new minute\n";
+      echo date("H:i:s ") . "new minute\n";
       $objects = SQLSelect("SELECT ID, TITLE FROM objects WHERE $o_qry");
       $total   = count($objects);
    
@@ -62,7 +62,7 @@ while(1)
   
    if ($h!=$old_hour) 
    {
-      echo "new hour\n";
+      echo date("H:i:s ") . "new hour\n";
       $old_hour = $h;
       $objects  = SQLSelect("SELECT ID, TITLE FROM objects WHERE $o_qry");
       $total    = count($objects);
@@ -73,19 +73,20 @@ while(1)
    
    if ($dt != $old_date) 
    {
-      echo "new day\n";
+      echo date("Y-m-d H:i:s") . " new day\n";
       $old_date = $dt;
    }
 
    if (file_exists('./reboot') || $_GET['onetime']) 
    {
       $db->Disconnect();
+      echo date("Y-m-d H:i:s ") . "Stopping by command REBOOT " . basename(__FILE__) . "\n";
       exit;
    }
 
    sleep(1);
 }
 
+echo date("Y-m-d H:i:s ") . "Unexpected stopping " . basename(__FILE__) . "\n";
 DebMes("Unexpected close of cycle: " . basename(__FILE__));
-
 ?>

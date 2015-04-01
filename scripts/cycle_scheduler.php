@@ -20,7 +20,7 @@ $ctl = new control_modules();
 $sc=new scripts();
 $checked_time=0;
 
-echo date("H:i:s") . " running " . basename(__FILE__) . "\n"; 
+echo date("Y-m-d H:i:s") . " running " . basename(__FILE__) . "\n"; 
 
 while(1) 
 {
@@ -34,11 +34,16 @@ while(1)
    if (file_exists('./reboot') || $_GET['onetime']) 
    {
       $db->Disconnect();
+      echo date("Y-m-d H:i:s ") . "Stopping by command REBOOT " . basename(__FILE__) . "\n";
       exit;
    }
 
    sleep(1);
 }
+
+$db->Disconnect(); 
+
+echo date("Y-m-d H:i:s ") . "Unexpected stopping " . basename(__FILE__) . "\n";
 
 DebMes("Unexpected close of cycle: " . basename(__FILE__));
 

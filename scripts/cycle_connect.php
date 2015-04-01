@@ -39,6 +39,8 @@ set_time_limit(0);
 $address = '83.169.6.78';
 $port = 11444;
 
+echo date("Y-m-d H:i:s") . " running " . basename(__FILE__) . "\n"; 
+
 while (1) {
 
 include_once(DIR_MODULES.'connect/connect.class.php');
@@ -46,7 +48,7 @@ $connect=new connect();
 $connect->getConfig();
 
 if (!$connect->config['CONNECT_SYNC']) {
- echo "Connect sync turned off.";
+ echo date("Y-m-d H:i:s") . " Connect sync turned off. \n";
  exit;
 } else {
  //global $send_menu;
@@ -199,6 +201,7 @@ while(1) {
    {
       socket_close($socket);
       $db->Disconnect();
+      echo date("Y-m-d H:i:s ") . "Stopping by command REBOOT " . basename(__FILE__) . "\n";
       exit;
    }
 
@@ -209,7 +212,6 @@ while(1) {
 echo date('Y-m-d H:i:s ')."Closing socket...";
 socket_close($socket);
 echo "OK.\n\n";
-
 }
 
 /**
@@ -243,5 +245,9 @@ echo "OK.\n\n";
 
 // closing database connection
 $db->Disconnect(); 
+
+echo date("Y-m-d H:i:s ") . "Unexpected stopping " . basename(__FILE__) . "\n";
+
+DebMes("Unexpected close of cycle: " . basename(__FILE__));
 
 ?>
