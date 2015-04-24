@@ -1,0 +1,48 @@
+<meta name="viewport" content="width=device-width,user-scalable=no">
+<link type="text/css" rel="stylesheet" href="../templates/app_lgtvrs232/css/style.css" />
+
+<script language="javascript">
+
+function send_cmd(channel){
+		var url = '/objects/?script=lgTVchannels&channel=';
+		url += channel;
+		//alert(url);
+		AJAXRequest(url, '', '');  
+};
+
+$(document).ready(function(){
+    
+    //alert(101);
+    $(".tvimg").click(function(){
+        var channel = $(this).attr("channel");
+		send_cmd(channel);
+		//alert(channel);
+    });
+
+});
+</script>
+ 
+<div class="channels">
+	<table align="center">
+		<tr>
+			<td><img src="../templates/app_lgtvrs232/images/tvlogo/Первый HD.png" class="tvimg" channel="1HD"></td>
+			<td><img src="../templates/app_lgtvrs232/images/tvlogo/СТС.png" class="tvimg" channel="CTC"></td>
+			<td><img src="../templates/app_lgtvrs232/images/tvlogo/ТНТ1.png" class="tvimg" channel="33"></td>
+		</tr>
+		<tr>
+			<td><img src="../templates/app_lgtvrs232/images/tvlogo/ТНТ1.png" class="tvimg" channel="TNT"></td>
+			<td><img src="../templates/app_lgtvrs232/images/tvlogo/Россия HD.png" class="tvimg" channel="RossiyaHD"></td>
+			<td><img src="../templates/app_lgtvrs232/images/tvlogo/Россия 1.png" class="tvimg" channel="Rossiya1"></td>
+		</tr>
+		<tr>
+			<td><img src="../templates/app_lgtvrs232/images/tvlogo/Discovery (rus).png" class="tvimg"></td>
+			<td><img src="../templates/app_lgtvrs232/images/tvlogo/FOX HD.png" class="tvimg"></td>
+			<td><img src="../templates/app_lgtvrs232/images/tvlogo/National Geographic Channel HD.png" class="tvimg"></td>
+		</tr>
+		<tr>
+			<td><img src="../templates/app_lgtvrs232/images/tvlogo/Муз ТВ.png" class="tvimg"></td>
+			<td><img src="../templates/app_lgtvrs232/images/tvlogo/РУ ТВ.png" class="tvimg"></td>
+			<td><img src="../templates/app_lgtvrs232/images/tvlogo/Ю-ТВ.png" class="tvimg"></td>
+		</tr>
+	</table>	
+</div>
