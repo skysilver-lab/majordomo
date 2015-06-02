@@ -27,6 +27,17 @@ function getClassNameByObject($title) {
  }
 }
 
+// Получить ID свойства объекта по имени этого объекта и имени свойства (только для свежих версий MajorDoMo)
+function getPropertyID ($prop_name) {
+        $arr_s = SQLSelectOne("SELECT * FROM pvalues WHERE PROPERTY_NAME='".$prop_name."'");
+        if (is_array ($arr_s)) {
+                $value_id = $arr_s['ID'];
+                return $value_id;
+        } else {
+                return 'error';
+        }
+}
+
 // Получить ID свойства объекта по имени этого объекта и имени свойства
 function getPropertyIDByObject($obj_title, $prop_title) {
  $arr_s = SQLSelectOne("SELECT * FROM objects WHERE TITLE='".$obj_title."'");
