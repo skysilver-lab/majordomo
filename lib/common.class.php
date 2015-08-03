@@ -13,7 +13,7 @@
 *
 * @access public
 */
- function say($ph, $level=0) 
+ function say($ph, $level=0, $member_id=0) 
  {
         global $commandLine;
         global $voicemode;
@@ -35,18 +35,27 @@
         $rec['MESSAGE']   = $ph;
         $rec['ADDED']     = date('Y-m-d H:i:s');
         $rec['ROOM_ID']   = 0;
-        $rec['MEMBER_ID'] = 0;
+        $rec['MEMBER_ID'] = $member_id;
  
         if ($level>0) $rec['IMPORTANCE']=$level;
         
         $rec['ID'] = SQLInsert('shouts', $rec);
+
+        if ($member_id) {
+         //if (!$noPatternMode) {
+                include_once(DIR_MODULES.'patterns/patterns.class.php');
+                $pt=new patterns();
+                $pt->checkAllPatterns($member_id);
+         //}
+         return;
+        }
 
         if (defined('SETTINGS_HOOK_BEFORE_SAY') && SETTINGS_HOOK_BEFORE_SAY!='') {
          eval(SETTINGS_HOOK_BEFORE_SAY);
         }
 
         global $ignoreVoice;
-        if ($level >= (int)getGlobal('minMsgLevel') && !$ignoreVoice) { 
+        if ($level >= (int)getGlobal('minMsgLevel') && !$ignoreVoice && !$member_id) { 
                 //$voicemode!='off' && 
 
            $lang='en';
@@ -57,10 +66,12 @@
                 $lang=SETTINGS_VOICE_LANGUAGE;
            }
 
-           if (!defined('SETTINGS_TTS_GOOGLE') || SETTINGS_TTS_GOOGLE) {
-                $google_file=GoogleTTS($ph, $lang);
+           if (SETTINGS_TTS_ENGINE=='google') {
+                $voice_file=GoogleTTS($ph, $lang);
+           } elseif (SETTINGS_TTS_ENGINE=='yandex') {
+                $voice_file=YandexTTS($ph, $lang);
            } else {
-                $google_file=false;
+                $voice_file=false;
            }
 
            if (!defined('SETTINGS_SPEAK_SIGNAL') || SETTINGS_SPEAK_SIGNAL=='1') {
@@ -71,18 +82,27 @@
                   }
            }
 
-           if ($google_file) {
-                @touch($google_file);
-                        playSound($google_file, 1, $level);
+           if ($voice_file) {
+                @touch($voice_file);
+                        playSound($voice_file, 1, $level);
            } else {
-                safe_exec('cscript '.DOC_ROOT.'/rc/sapi.js '.$ph, 1, $level);
+             if (IsWindowsOS()) {
+               safe_exec('cscript '.DOC_ROOT.'/rc/sapi.js '.$ph, 1, $level);
+             } else {
+               if ($lang=='ru') {
+                $ln='russian';
+               } else {
+                $ln='english';
+               }
+               safe_exec('echo "'.$ph.'" | festival --language '.$ln.' --tts',1,$level);
+             }
            }
         }
 
         if (!$noPatternMode) {
                 include_once(DIR_MODULES.'patterns/patterns.class.php');
                 $pt=new patterns();
-                $pt->checkAllPatterns();
+                $pt->checkAllPatterns($member_id);
         }
 
 
@@ -398,7 +418,7 @@
   $jobs=SQLSelect("SELECT * FROM jobs WHERE PROCESSED=0 AND EXPIRED=0 AND RUNTIME<='".date('Y-m-d H:i:s')."'");
   $total=count($jobs);
   for($i=0;$i<$total;$i++) {
-   echo date("Y-m-d H:i:s ")." Running job: ".$jobs[$i]['TITLE']."\n";
+   echo "Running job: ".$jobs[$i]['TITLE']."\n";
    $jobs[$i]['PROCESSED']=1;
    $jobs[$i]['STARTED']=date('Y-m-d H:i:s');
    SQLUpdate('jobs', $jobs[$i]);
@@ -633,7 +653,7 @@ function playSound($filename, $exclusive=0, $priority=0)
 *
 * @access public
 */
- function getURL($url, $cache=600, $username='', $password='') {
+ function getURL($url, $cache=0, $username='', $password='') {
   $cache_file=ROOT.'cached/urls/'.preg_replace('/\W/is', '_', str_replace('http://', '', $url)).'.html';
   if (!$cache || !is_file($cache_file) || ((time()-filemtime($cache_file))>$cache)) {
    //download

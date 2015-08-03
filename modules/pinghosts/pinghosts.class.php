@@ -190,8 +190,7 @@ function usual(&$out) {
   $total=count($pings);
   for($i=0;$i<$total;$i++) {
    $host=$pings[$i];
-   if ($host['HOSTNAME'] == '') $host['HOSTNAME'] = '127.0.0.1';
-   echo date("Y-m-d H:i:s ") . " Checking ".$host['HOSTNAME']."\n";
+   echo "Checking ".$host['HOSTNAME']."\n";
    $online_interval=$host['ONLINE_INTERVAL'];
    if (!$online_interval) {
     $online_interval=60;
