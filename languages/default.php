@@ -124,6 +124,7 @@ $dictionary=array(
 'MODULE_SOUNDFILES'=>'Sound files',
 'MODULE_SYSTEM_ERRORS'=>'System Errors', 
 'MODULE_MODULES'=>'Modules', 
+'MODULE_USERLOG'=>'User log', 
 
 'SETUP'=>'Setup', 
 
@@ -1013,6 +1014,11 @@ $dictionary=array(
 'PATTERN_CONDITIONAL'=>'Conditional',
 'CONDITION'=>'Condition',
 'ADD_EXIT_CODE'=>'Add "exit" code',
+'SMART_REPEAT'=>'Smart Repeat',
+'UPDATE_ALL_EXTENSIONS'=>'Update all extensions installed',
+
+'HCB'=>' <a href="http://majordomo.smartliving.ru/Hints/',
+'HCE'=>'?skin=hint" class="wiki_hint fancybox.iframe"><i class="glyphicon glyphicon-info-sign"></i></a>',
 
 'TEST'=>'test'
 

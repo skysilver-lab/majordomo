@@ -112,6 +112,7 @@ $dictionary=array(
 'MODULE_SOUNDFILES'=>'Звуковые файлы',
 'MODULE_SYSTEM_ERRORS'=>'Ошибки системы',
 'MODULE_MODULES'=>'Модули', 
+'MODULE_USERLOG'=>'Журнал действий', 
 
 'SCENE_HIDDEN'=>'Не включать в список переключающихся сцен', 
 
@@ -1013,7 +1014,7 @@ $dictionary=array(
 'PATTERN_CONDITIONAL'=>'На основе значений свойств',
 'CONDITION'=>'Условие',
 'ADD_EXIT_CODE'=>'Добавить код "выхода"',
-
+'UPDATE_ALL_EXTENSIONS'=>'Обновить все установленные дополнения',
 
 'TEST'=>'test'
 
