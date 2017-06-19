@@ -17,9 +17,11 @@ if (isset($transform[$color])) {
 }
 
 if ($color == '000000') {
-    $this->callMethodSafe('turnOff');
+    //$this->callMethodSafe('turnOff');
+    $this->callMethod('turnOff');
 } else {
     $this->setProperty('color',$color);
     $this->setProperty('colorSaved',$color);
-    $this->callMethodSafe('turnOn');
+    //$this->callMethodSafe('turnOn');
+    $this->callMethod('turnOn');
 }
