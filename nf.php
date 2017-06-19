@@ -10,6 +10,9 @@
  * @package MajorDoMo
  * @author Serge Dzheigalo <jey@tut.by> http://smartliving.ru/
  */
+list($usec, $sec) = explode(" ",microtime());
+$script_started_time = ((float)$usec + (float)$sec);
+
 
 if (!preg_match('/\/$/', $_SERVER["REQUEST_URI"]))
    $file = basename($_SERVER["REQUEST_URI"]);
@@ -36,7 +39,9 @@ include_once("./config.php");
 $requests = array(
    "/^\/panel\/script\/(\d+)\.html/is"  => '?(panel:{action=scripts})&md=scripts&view_mode=edit_scripts&id=\1',
    "/^\/panel\/command\/(\d+)\.html/is" => '?(panel:{action=commands})&md=commands&view_mode=edit_commands&id=\1',
+    "/^\/panel\/xray\.html/is" => '?(panel:{action=xray})&md=xray',
    "/^\/panel\/linkedobject.html/is"    => '?(panel:{action=linkedobject})',
+    "/^\/panel\/popup\/(.+?).html/is"   => '?(panel:{action=\1})&print=1',
    "/^\/panel\/class\/(\d+)\.html/is"   => '?(panel:{action=classes})&md=classes&view_mode=edit_classes&id=\1',
    "/^\/panel\/class\/(\d+)\/properties\.html/is"=> '?(panel:{action=classes})&md=classes&view_mode=edit_classes&id=\1&tab=properties',
    "/^\/panel\/class\/(\d+)\/methods\.html/is"=> '?(panel:{action=classes})&md=classes&view_mode=edit_classes&id=\1&tab=methods',
@@ -54,10 +59,13 @@ $requests = array(
    "/^\/pages\.html/is"                 => '?(application:{action=pages})',
    "/^\/menu\/(\d+?)\.html/is"          => '?(application:{action=menu, parent_item=\1})',
    "/^\/popup\/(shoutbox)\.html/is"     => '?(application:{action=\1, popup=1, app_action=1})',
+   "/^\/module\/(.+?)\.html/is"     => '?(application:{action=\1, popup=1, app_action=1})',
+    "/^\/apps\/(.+?)\.html/is"     => '?(application:{action=apps, popup=1, app_action=\1})',
+    "/^\/apps\.html/is"     => '?(application:{action=apps, popup=1})',
    "/^\/popup\/(.+?)\/(.+?)\.html/is"   => '?(application:{action=\1, popup=1})',
    "/^\/popup\/(.+?)\.html/is"          => '?(application:{action=\1, popup=1})',
    "/^\/ajax\/(.+?)\.html/is"           => '?(application:{action=\1, ajax=1})',
-   "/^\/page\/(\d+?)\.html/is"          => '?(application:{action=layouts, popup=1}layouts:{view_mode=view_layouts, id=\1})',
+   "/^\/page\/(\w+?)\.html/is"          => '?(application:{action=layouts, popup=1}layouts:{view_mode=view_layouts, id=\1})',
    "/^\/getnextevent\.html/is"          => '?(application:{action=events})',
    "/^\/getlatestnote\.html/is"         => '?(application:{action=getlatestnote})',
    "/^\/getlatestmp3\.html/is"          => '?(application:{action=getlatestmp3})',
@@ -92,8 +100,13 @@ if (preg_match('/^moved:(.+)/is', $link, $matches))
    exit;
 }
 
+include_once("./lib/perfmonitor.class.php");
+
+startMeasure('TOTAL');
 include_once("./config.php");
+startMeasure('loader');
 include_once("./lib/loader.php");
+endMeasure('loader');
 
 if ($link != '')
 {

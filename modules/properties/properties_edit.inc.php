@@ -31,11 +31,31 @@
     $ok=0;
    }
 
+   if ($ok && $rec['CLASS_ID']) {
+    include_once(DIR_MODULES.'classes/classes.class.php');
+    $cl=new classes();
+    $parent_properties=$cl->getParentProperties($rec['CLASS_ID']);
+    $seen=array();
+    foreach($parent_properties as $k=>$v) {
+     $seen[strtoupper($v['TITLE'])]=1;
+    }
+    if (IsSet($seen[strtoupper($rec['TITLE'])])) {
+     $ok=0;
+     $out['ERR_TITLE']=1;
+    }
+   }
+
    global $keep_history;
    $rec['KEEP_HISTORY']=(int)$keep_history;
 
    global $onchange;
    $rec['ONCHANGE']=trim($onchange);
+
+   global $data_key;
+   $rec['DATA_KEY']=(int)$data_key;
+
+   global $data_type;
+   $rec['DATA_TYPE']=(int)$data_type;
 
   //updating 'Description' (text)
    global $description;
@@ -87,6 +107,15 @@
    }
   }
   outHash($rec, $out);
+
+  if ($rec['CLASS_ID']) {
+   //echo "zz";exit;
+    include_once(DIR_MODULES.'objects/objects.class.php');
+    $obj=new objects();
+    $methods=$obj->getParentMethods($rec['CLASS_ID'], '', 1);
+    $out['METHODS']=$methods;
+
+  }
 
   global $overwrite;
   if ($overwrite) {

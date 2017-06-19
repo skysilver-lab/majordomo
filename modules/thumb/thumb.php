@@ -2,15 +2,17 @@
 /*
 * @version 0.1 (auto-set)
 */
+error_reporting(E_ALL & ~(E_STRICT | E_NOTICE));
 chdir('../../');
 include_once("./config.php");
 include_once("./lib/loader.php");
 
-
-if (IsWindowsOS()) {
- define("PATH_TO_FFMPEG", SERVER_ROOT.'/apps/ffmpeg/ffmpeg.exe');
-} else {
- define("PATH_TO_FFMPEG", 'ffmpeg');
+if (!defined('PATH_TO_FFMPEG')) {
+ if (IsWindowsOS()) {
+  define("PATH_TO_FFMPEG", SERVER_ROOT.'/apps/ffmpeg/ffmpeg.exe');
+ } else {
+  define("PATH_TO_FFMPEG", 'ffmpeg');
+ }
 }
 
 define("_I_CACHING","1");               //    Chaching enabled, 1 - yes, 0 - no
@@ -23,7 +25,7 @@ define("_I_CACHE_EXPIRED","2592000");   //    Expired time for images in seconds
 //$img=urldecode($_REQUEST['img']);
 
 
-if ($url) {
+if (IsSet($url) && $url!='') {
 
    $resize='';
    if ($w && $h) {
@@ -33,8 +35,12 @@ if ($url) {
    } elseif ($h) {
     $resize=' -vf scale=-1:'.$h;
    }
-
    $url=base64_decode($url);
+
+   if ($username || $password) {
+    $url=str_replace('://','://'.$username.':'.$password.'@',$url);
+   }
+
    if (preg_match('/^rtsp:/is', $url)) {
     if ($live) {
      //$cmd=PATH_TO_FFMPEG.' -stimeout 5000000 -rtsp_transport tcp -y -i "'.$url.'" -r 10 -q:v 9 -f mjpeg pipe:1';// /dev/stdout 2>/dev/null
@@ -61,7 +67,9 @@ if ($url) {
         }
 
     } else {
-     system(PATH_TO_FFMPEG.' -rtsp_transport tcp -y -i "'.$url.'"'.$resize.' -r 10 -f image2 -ss 00:00:01.500 -vframes 1 '.$img);
+     @unlink($img);
+     $cmd=PATH_TO_FFMPEG.' -v 0 -rtsp_transport tcp -y -i "'.$url.'"'.$resize.' -r 10 -f image2 -ss 00:00:01.500 -vframes 1 '.$img;
+     system($cmd);
     }
     $dc=1;
    } else {
@@ -109,7 +117,7 @@ if ($url) {
 
 //echo $img;exit;
 
-$type = ($_REQUEST['t'] ? $_REQUEST['t']:0);
+$type = (IsSet($_REQUEST['t']) ? $_REQUEST['t']:0);
 
 /*
    Allowed types:
@@ -119,7 +127,6 @@ $type = ($_REQUEST['t'] ? $_REQUEST['t']:0);
 //$img='./../../'.$img;
 
 if (file_exists($img)) {
-
 
  $new_width=(int)$_REQUEST['w'];
  $new_height=(int)$_REQUEST['h'];

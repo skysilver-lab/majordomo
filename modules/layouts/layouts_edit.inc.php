@@ -19,6 +19,11 @@
   //updating 'PRIORITY' (int)
    global $priority;
    $rec['PRIORITY']=(int)$priority;
+
+   global $hidden;
+   $rec['HIDDEN']=(int)$hidden;
+
+
   //updating 'TYPE' (select)
    global $type;
    $rec['TYPE']=$type;
@@ -28,10 +33,10 @@
 
   //updating 'APP' (varchar)
    global $appname;
-   $rec['APP']=$appname;
+   $rec['APP']=$appname.'';
   //updating 'URL' (url)
    global $url;
-   $rec['URL']=$url;
+   $rec['URL']=$url.'';
 
    global $delete_icon;
    if ($delete_icon) {
@@ -90,12 +95,13 @@
    $out['TYPE_OPTIONS'][]=array('VALUE'=>$value, 'TITLE'=>$title);
    $type_opt[$value]=$title;
   }
-  for($i=0;$i<count($out['TYPE_OPTIONS']);$i++) {
-   if ($out['TYPE_OPTIONS'][$i]['VALUE']==$rec['TYPE']) {
-    $out['TYPE_OPTIONS'][$i]['SELECTED']=1;
-    //$out['TYPE']=$out['TYPE_OPTIONS'][$i]['TITLE'];
-    //$rec['TYPE']=$out['TYPE_OPTIONS'][$i]['TITLE'];
-   }
+
+  $optionsTypeCnt = count($out['TYPE_OPTIONS']);
+
+  for ($i = 0; $i < $optionsTypeCnt; $i++)
+  {
+      if ($out['TYPE_OPTIONS'][$i]['VALUE'] == $rec['TYPE'])
+         $out['TYPE_OPTIONS'][$i]['SELECTED'] = 1;
   }
 
   if (is_array($rec)) {

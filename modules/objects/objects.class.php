@@ -11,6 +11,7 @@
 //
 //
 class objects extends module {
+
 /**
 * objects
 *
@@ -32,20 +33,20 @@ function objects() {
 * @access public
 */
 function saveParams($data=1) {
- $p=array();
+ $data=array();
  if (IsSet($this->id)) {
-  $p["id"]=$this->id;
+  $data["id"]=$this->id;
  }
  if (IsSet($this->view_mode)) {
-  $p["view_mode"]=$this->view_mode;
+  $data["view_mode"]=$this->view_mode;
  }
  if (IsSet($this->edit_mode)) {
-  $p["edit_mode"]=$this->edit_mode;
+  $data["edit_mode"]=$this->edit_mode;
  }
  if (IsSet($this->tab)) {
-  $p["tab"]=$this->tab;
+  $data["tab"]=$this->tab;
  }
- return parent::saveParams($p);
+ return parent::saveParams($data);
 }
 /**
 * getParams
@@ -205,6 +206,23 @@ function admin(&$out) {
 */
 function usual(&$out) {
 
+ if ($this->ajax) {
+
+  header("HTTP/1.0: 200 OK\n");
+  header('Content-Type: text/html; charset=utf-8');
+
+  global $op;
+  global $id;
+  $res=array();
+  if ($op=='get_object') {
+   $res=$this->processObject($id);
+  }
+  echo json_encode($res);
+
+  global $db;$db->disconnect();
+  exit;
+ }
+
  if ($this->class) {
   $objects=getObjectsByClass($this->class);
   if (!$this->code) {
@@ -275,13 +293,17 @@ function usual(&$out) {
 */
  function loadObject($id) {
   $rec=SQLSelectOne("SELECT * FROM objects WHERE ID='".DBSafe($id)."'");
-  if ($rec['ID']) {
+  if (IsSet($rec['ID'])) {
    $this->id=$rec['ID'];
    $this->object_title=$rec['TITLE'];
    $this->class_id=$rec['CLASS_ID'];
+   if ($this->class_id) {
+    $class_rec=SQLSelectOne("SELECT ID,TITLE FROM classes WHERE ID=".$this->class_id);
+    $this->class_title=$class_rec['TITLE'];
+   }
    $this->description=$rec['DESCRIPTION'];
    $this->location_id=$rec['LOCATION_ID'];
-   $this->keep_history=$rec['KEEP_HISTORY'];
+   //$this->keep_history=$rec['KEEP_HISTORY'];
   } else {
    return false;
   }
@@ -419,37 +441,24 @@ function usual(&$out) {
     $url.='&'.urlencode($k).'='.urlencode($v);
    }
   }
-  //echo DOC_ROOT.'/obj.bat '.utf2win().'.'.$name.' '.$p."<br>";
-  //$cmd=(DOC_ROOT.'/obj.bat '.utf2win($this->object_title).'.'.$name.' '.$p);
-  //echo $url;
 
-$ch = curl_init();
-
-// set URL and other appropriate options
-curl_setopt($ch, CURLOPT_URL, $url);
-/*
-curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 1);
-curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, 500);
-curl_setopt($ch, CURLOPT_TIMEOUT, 1);
-curl_setopt($ch, CURLOPT_TIMEOUT_MS, 500);
-*/
-curl_setopt($ch, CURLOPT_HEADER, 0);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-$data=curl_exec($ch);
-curl_close($ch);
-
-//$mh = curl_multi_init();
-//curl_multi_add_handle($mh,$ch);
-//curl_multi_exec($mh,$running);
-
-  //popen("start /B ". $cmd, "r");
-
+  $data=getURL($url, 0);
   
  }
 
-
  function callClassMethod($name, $params=0) {
   $this->callMethod($name, $params, 1);
+ }
+
+ function callMethodSafe($name,$params = 0) {
+  $url=BASE_URL.'/objects/?object='.$this->object_title.'&op=m&m='.urlencode($name);
+  if (is_array($params)) {
+   foreach($params as $k=>$v) {
+    $url.='&'.$k.'='.urlencode($v);
+   }
+  }
+  $result = getURL($url,0);
+  return $result;
  }
 
 /**
@@ -535,11 +544,11 @@ curl_close($ch);
      try {
        $success = eval($code);
        if ($success === false) {
-         getLogger($this)->error(sprintf('Error in "%s.%s" method. Code: %s', $this->object_title, $name, $code));
-         registerError('method', sprintf('Exception in "%s.%s" method Code: %s', $this->object_title, $name, $code));
+         //getLogger($this)->error(sprintf('Error in "%s.%s" method.', $this->object_title, $name));
+         registerError('method', sprintf('Exception in "%s.%s" method.', $this->object_title, $name));
        }
      } catch (Exception $e) {
-       getLogger($this)->error(sprintf('Exception in "%s.%s" method', $this->object_title, $name), $e);
+       //getLogger($this)->error(sprintf('Exception in "%s.%s" method', $this->object_title, $name), $e);
        registerError('method', sprintf('Exception in "%s.%s" method '.$e->getMessage(), $this->object_title, $name));
      }
 
@@ -548,6 +557,8 @@ curl_close($ch);
    endMeasure('callMethod ('.$original_method_name.')', 1);
    if ($method['OBJECT_ID'] && $method['CALL_PARENT']==2) {
     $parent_success=$this->callMethod($name, $params, 1);
+   } else {
+    $parent_success=true;
    }
 
    if (isset($success)) {
@@ -614,6 +625,19 @@ curl_close($ch);
   }
   startMeasure('getProperty');
   startMeasure('getProperty ('.$property.')');
+
+  if ($this->object_title) {
+   if ($property=='object_title') {
+    return $this->object_title;
+   } elseif ($property=='object_description') {
+    return $this->description;
+   } elseif ($property=='object_id') {
+    return $this->id;
+   } elseif ($property=='class_title') {
+    return $this->class_title;
+   }
+  }
+
   $id=$this->getPropertyByName($property, $this->class_id, $this->id);
   if ($id) {
    $value=SQLSelectOne("SELECT * FROM pvalues WHERE PROPERTY_ID='".(int)$id."' AND OBJECT_ID='".(int)$this->id."'");
@@ -626,6 +650,9 @@ curl_close($ch);
   }
   endMeasure('getProperty ('.$property.')', 1);
   endMeasure('getProperty', 1);
+  if (!isset($value['VALUE'])) {
+   $value['VALUE']=false;
+  }
   return $value['VALUE'];
  }
 
@@ -636,33 +663,91 @@ curl_close($ch);
 *
 * @access public
 */
- function setProperty($property, $value, $no_linked=0) {
+ function setProperty($property, $value, $no_linked=0, $source='') {
 
   startMeasure('setProperty');
   startMeasure('setProperty ('.$property.')');
-  $id=$this->getPropertyByName($property, $this->class_id, $this->id);
-  $old_value='';
 
-  if ($id) {
-   $prop=SQLSelectOne("SELECT * FROM properties WHERE ID='".$id."'");
-   $v=SQLSelectOne("SELECT * FROM pvalues WHERE PROPERTY_ID='".(int)$id."' AND OBJECT_ID='".(int)$this->id."'");
-   $old_value=$v['VALUE'];
-   $v['VALUE']=$value;
-   if ($v['ID']) {
-    $v['UPDATED']=date('Y-m-d H:i:s');
-    if ($old_value!=$value) {
-     SQLUpdate('pvalues', $v);
+  if (is_null($value)) {
+   $value='';
+  }
+
+  if (!$source && is_string($no_linked)) {
+   $source=$no_linked;
+   $no_linked=0;
+  }
+
+  if (defined('TRACK_DATA_CHANGES') && TRACK_DATA_CHANGES==1) {
+   $save=1;
+
+   if (!is_numeric(trim($value))) {
+    $save=0;
+   }
+
+   if (defined('TRACK_DATA_CHANGES_IGNORE') && TRACK_DATA_CHANGES_IGNORE!='' && $save) {
+    $tmp=explode(',', TRACK_DATA_CHANGES_IGNORE);
+    $total=count($tmp);
+    for($i=0;$i<$total;$i++) {
+     $regex=trim($tmp[$i]);
+     if (preg_match('/'.$regex.'/is', $this->object_title.'.'.$property)) {
+      $save=0;
+      break;
+     }
+    }
+   }
+   if ($save) {
+    if ($this->location_id) {
+     $location=current(SQLSelectOne("SELECT TITLE FROM locations WHERE ID=".(int)$this->location_id));
     } else {
-     SQLExec("UPDATE pvalues SET UPDATED='".$v['UPDATED']."' WHERE ID='".$v['ID']."'");
+     $location='';
     }
 
-    $cached_name='MJD:'.$this->object_title.'.'.$property;
-    saveToCache($cached_name, $value);
 
+   if (defined('LOG_DIRECTORY') && LOG_DIRECTORY!='') {
+    $path=LOG_DIRECTORY;
+   } else {
+    $path = ROOT . 'debmes';
+   }
+
+    $today_file=$path . '/'.date('Y-m-d').'.data';
+    $f=fopen($today_file, "a+");
+    if ($f) {
+                fputs($f, date("Y-m-d H:i:s"));
+                fputs($f, "\t".$this->object_title.'.'.$property."\t".trim($value)."\t".trim($source)."\t".trim($location)."\n");
+                fclose($f);
+                @chmod($today_file, 0666);
+    }   
+   }
+  }
+
+  startMeasure('getPropertyByName');
+  $id=$this->getPropertyByName($property, $this->class_id, $this->id);
+  endMeasure('getPropertyByName');
+  $old_value='';
+
+  $cached_name='MJD:'.$this->object_title.'.'.$property;
+
+  startMeasure('setproperty_update');
+  if ($id) {
+   $prop=SQLSelectOne("SELECT * FROM properties WHERE ID='".$id."'");
+   startMeasure('setproperty_update_getvalue');
+   $v=SQLSelectOne("SELECT * FROM pvalues WHERE PROPERTY_ID='".(int)$id."' AND OBJECT_ID='".(int)$this->id."'");
+   endMeasure('setproperty_update_getvalue');
+   $old_value=$v['VALUE'];
+   $v['VALUE']=$value.'';
+   $v['SOURCE']=$source.'';
+   if ($v['ID']) {
+    $v['UPDATED']=date('Y-m-d H:i:s');
+    //if ($old_value!=$value) {
+     SQLUpdate('pvalues', $v);
+    //} else {
+    // SQLExec("UPDATE pvalues SET UPDATED='".$v['UPDATED']."' WHERE ID='".$v['ID']."'");
+    //}
    } else {
     $v['PROPERTY_ID']=$id;
     $v['OBJECT_ID']=$this->id;
-    $v['VALUE']=$value;
+    $v['VALUE']=$value.'';
+    $v['SOURCE']=$source.'';
     $v['UPDATED']=date('Y-m-d H:i:s');
     $v['ID']=SQLInsert('pvalues', $v);
    }
@@ -671,55 +756,55 @@ curl_close($ch);
     $prop=array();
     $prop['OBJECT_ID']=$this->id;
     $prop['TITLE']=$property;
+    //$prop['VALUE']='';
     $prop['ID']=SQLInsert('properties', $prop);
 
     $v['PROPERTY_ID']=$prop['ID'];
     $v['OBJECT_ID']=$this->id;
-    $v['VALUE']=$value;
+    $v['VALUE']=$value.'';
+    $v['SOURCE']=$source.'';
     $v['UPDATED']=date('Y-m-d H:i:s');
     $v['ID']=SQLInsert('pvalues', $v);
   }
+  endMeasure('setproperty_update');
 
+  saveToCache($cached_name, $value);
+
+  if (function_exists('postToWebSocketQueue')) {
+   startMeasure('setproperty_postwebsocketqueue');
+   postToWebSocketQueue($this->object_title.'.'.$property, $value);
+   endMeasure('setproperty_postwebsocketqueue');
+  }
+
+  /*
   if ($this->keep_history>0) {
    $prop['KEEP_HISTORY']=$this->keep_history;
   }
+  */
 
-  //if (($prop['KEEP_HISTORY']>0) && (($value!=$old_value) || (defined('KEEP_HISTORY_DUPLICATES') && KEEP_HISTORY_DUPLICATES==1))) {
-  if (IsSet($prop['KEEP_HISTORY']) && ($prop['KEEP_HISTORY']>0) && ($value!=$old_value)) {
-   startMeasure('DeleteOldHistory');
-   SQLExec("DELETE FROM phistory WHERE VALUE_ID='".$v['ID']."' AND TO_DAYS(NOW())-TO_DAYS(ADDED)>".(int)$prop['KEEP_HISTORY']);
-   endMeasure('DeleteOldHistory', 1);
-   $h=array();
-   $h['VALUE_ID']=$v['ID'];
-   $h['ADDED']=date('Y-m-d H:i:s');
-   $h['VALUE']=$value;
-   $h['ID']=SQLInsert('phistory', $h);
-  } elseif (IsSet($prop['KEEP_HISTORY']) && ($prop['KEEP_HISTORY']>0) && ($value==$old_value)) {
-   $tmp_history=SQLSelect("SELECT * FROM phistory WHERE VALUE_ID='".$v['ID']."' ORDER BY ID DESC LIMIT 2");
-   $prev_value=$tmp_history[0]['VALUE'];
-   $prev_prev_value=$tmp_history[1]['VALUE'];
-   if ($prev_value==$prev_prev_value) {
-    $tmp_history[0]['ADDED']=date('Y-m-d H:i:s');
-    SQLUpdate('phistory', $tmp_history[0]);
-   } else {
-    $h=array();
-    $h['VALUE_ID']=$v['ID'];
-    $h['ADDED']=date('Y-m-d H:i:s');
-    $h['VALUE']=$value;
-    $h['ID']=SQLInsert('phistory', $h);
-   }
+  if (IsSet($prop['KEEP_HISTORY']) && ($prop['KEEP_HISTORY']>0)) {
+   $q_rec=array();
+   $q_rec['VALUE_ID']=$v['ID'];
+   $q_rec['ADDED']=date('Y-m-d H:i:s');
+   $q_rec['VALUE']=$value.'';
+   $q_rec['SOURCE']=$source.'';
+   $q_rec['OLD_VALUE']=$old_value;
+   $q_rec['KEEP_HISTORY']=$prop['KEEP_HISTORY'];
+   SQLInsert('phistory_queue', $q_rec);
   }
+
 
   if (isset($prop['ONCHANGE']) && $prop['ONCHANGE']) {
    global $property_linked_history;
    if (!$property_linked_history[$property][$prop['ONCHANGE']]) {
     $property_linked_history[$property][$prop['ONCHANGE']]=1;
-    global $on_change_called;
     $params=array();
     $params['PROPERTY']=$property;
     $params['NEW_VALUE']=(string)$value;
     $params['OLD_VALUE']=(string)$old_value;
-    $this->callMethod($prop['ONCHANGE'], $params);
+    $params['SOURCE']=(string)$source;
+    //$this->callMethod($prop['ONCHANGE'], $params);
+    $this->callMethodSafe($prop['ONCHANGE'], $params);
     unset($property_linked_history[$property][$prop['ONCHANGE']]);
    }
   }
@@ -736,13 +821,14 @@ curl_close($ch);
    $total=count($tmp);
 
 
-
+   startMeasure('linkedModulesProcessing');
    for($i=0;$i<$total;$i++) {
     $linked_module=trim($tmp[$i]);
 
     if (isset($no_linked[$linked_module])) {
      continue;
     }
+    startMeasure('linkedModule'.$linked_module);
     if (file_exists(DIR_MODULES.$linked_module.'/'.$linked_module.'.class.php')) {
      include_once(DIR_MODULES.$linked_module.'/'.$linked_module.'.class.php');
      $module_object=new $linked_module;
@@ -750,7 +836,9 @@ curl_close($ch);
       $module_object->propertySetHandle($this->object_title, $property, $value);
      }
     }
+    endMeasure('linkedModule'.$linked_module);
    }
+   endMeasure('linkedModulesProcessing');
   }
 
   /*
@@ -767,6 +855,39 @@ curl_close($ch);
   endMeasure('setProperty ('.$property.')', 1);
   endMeasure('setProperty', 1);
 
+ }
+
+ function getWatchedProperties($objects) {
+  $properties=array();
+  $ids=explode(',',$objects);
+  include_once(DIR_MODULES.'classes/classes.class.php');
+  $cl=new classes();
+
+  foreach($ids as $object_id) {
+   $this->loadObject($object_id);
+   $props=$cl->getParentProperties($this->class_id, '', 1);
+   $my_props=SQLSelect("SELECT * FROM properties WHERE OBJECT_ID='".(int)$object_id."'");
+   if ($my_props[0]['ID']) {
+    foreach($my_props as $p) {
+     $props[]=$p;
+    }
+   }
+   if (is_array($props)) {
+    foreach($props as $k=>$v) {
+     if (substr($v['TITLE'],0,1)=='_') continue;
+     $properties[]=array('PROPERTY'=>mb_strtolower($this->object_title.'.'.$v['TITLE'], 'UTF-8'), 'OBJECT_ID'=>$object_id);
+    }
+   }
+  }
+  return $properties;
+ }
+
+ function processObject($object_id) {
+  $object_rec=SQLSelectOne("SELECT * FROM objects WHERE ID=".(int)$object_id);
+  $result=array('HTML'=>'','OBJECT_ID'=>$object_rec['ID']);
+  $template=getObjectClassTemplate($object_rec['TITLE']);
+  $result['HTML']=processTitle($template,$this);
+  return $result;
  }
 
 /**
@@ -799,7 +920,7 @@ curl_close($ch);
 */
  function dbInstall($data) {
 
-  SQLExec("DROP TABLE IF EXISTS `cached_values`;");
+  //SQLExec("DROP TABLE IF EXISTS `cached_values`;");
   $sqlQuery = "CREATE TABLE IF NOT EXISTS `cached_values`
                (`KEYWORD`   char(100) NOT NULL,
                 `DATAVALUE` char(255) NOT NULL,
@@ -808,16 +929,69 @@ curl_close($ch);
                ) ENGINE = MEMORY DEFAULT CHARSET=utf8;";
   SQLExec($sqlQuery);
 
+  $sqlQuery = "CREATE TABLE IF NOT EXISTS `cached_ws`
+               (`PROPERTY`   char(100) NOT NULL,
+                `DATAVALUE` varchar(20000) NOT NULL,
+                `POST_ACTION`   char(100) NOT NULL,
+                `ADDED`    datetime  NOT NULL,
+                PRIMARY KEY (`PROPERTY`)
+               ) ENGINE = MEMORY DEFAULT CHARSET=utf8;";
+  SQLExec($sqlQuery);
+
+  //echo ("Executing $sqlQuery\n");
+
 /*
 objects - Objects
 */
   $data = <<<EOD
  objects: ID int(10) unsigned NOT NULL auto_increment
+ objects: SYSTEM varchar(255) NOT NULL DEFAULT ''
  objects: TITLE varchar(255) NOT NULL DEFAULT ''
  objects: CLASS_ID int(10) NOT NULL DEFAULT '0'
  objects: DESCRIPTION text
  objects: LOCATION_ID int(10) NOT NULL DEFAULT '0'
  objects: KEEP_HISTORY int(10) NOT NULL DEFAULT '0'
+
+ properties: ID int(10) unsigned NOT NULL auto_increment
+ properties: CLASS_ID int(10) NOT NULL DEFAULT '0'
+ properties: OBJECT_ID int(10) NOT NULL DEFAULT '0'
+ properties: SYSTEM varchar(255) NOT NULL DEFAULT ''
+ properties: TITLE varchar(255) NOT NULL DEFAULT ''
+ properties: KEEP_HISTORY int(10) NOT NULL DEFAULT '0'
+ properties: DATA_KEY int(3) NOT NULL DEFAULT '0' 
+ properties: DATA_TYPE int(3) NOT NULL DEFAULT '0' 
+ properties: DESCRIPTION text
+ properties: ONCHANGE varchar(255) NOT NULL DEFAULT ''
+ properties: INDEX (CLASS_ID)
+ properties: INDEX (OBJECT_ID)
+ 
+ pvalues: ID int(10) unsigned NOT NULL auto_increment
+ pvalues: PROPERTY_NAME varchar(100) NOT NULL DEFAULT ''
+ pvalues: PROPERTY_ID int(10) NOT NULL DEFAULT '0'
+ pvalues: OBJECT_ID int(10) NOT NULL DEFAULT '0'
+ pvalues: VALUE text
+ pvalues: UPDATED datetime
+ pvalues: SOURCE varchar(20) NOT NULL DEFAULT ''
+ pvalues: LINKED_MODULES varchar(255) NOT NULL DEFAULT ''
+ pvalues: INDEX (PROPERTY_ID)
+ pvalues: INDEX (OBJECT_ID)
+ pvalues: INDEX (PROPERTY_NAME) 
+
+ phistory: ID int(10) unsigned NOT NULL auto_increment
+ phistory: VALUE_ID int(10) unsigned NOT NULL DEFAULT '0'
+ phistory: SOURCE varchar(20) NOT NULL DEFAULT ''
+ phistory: ADDED datetime
+ phistory: INDEX (VALUE_ID)
+
+ phistory_queue: ID int(10) unsigned NOT NULL auto_increment
+ phistory_queue: VALUE_ID int(10) unsigned NOT NULL DEFAULT '0'
+ phistory_queue: VALUE text
+ phistory_queue: OLD_VALUE text
+ phistory_queue: KEEP_HISTORY int(10) unsigned NOT NULL DEFAULT '0'
+ phistory_queue: SOURCE varchar(20) NOT NULL DEFAULT ''
+ phistory_queue: ADDED datetime
+
+
 EOD;
   parent::dbInstall($data);
  }
@@ -828,4 +1002,3 @@ EOD;
 * TW9kdWxlIGNyZWF0ZWQgTWF5IDIyLCAyMDA5IHVzaW5nIFNlcmdlIEouIHdpemFyZCAoQWN0aXZlVW5pdCBJbmMgd3d3LmFjdGl2ZXVuaXQuY29tKQ==
 *
 */
-?>

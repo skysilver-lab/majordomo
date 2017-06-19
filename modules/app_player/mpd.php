@@ -24,6 +24,7 @@ if($mpd->connected)
       $db = SQLSelect("SELECT * FROM collections ORDER BY TITLE");
       $total = count($db);
       
+      /*
       for($i = 0; $i < $total; $i++)
       {
          if ($db[$i][PATH]{0} == '/')
@@ -32,8 +33,12 @@ if($mpd->connected)
             break;
          }
       }
+      */
       $path = str_replace('\\', '/', $path);
       $path = str_replace('./', '', $path);
+
+      //echo $path;
+
       
       $mpd->PLAdd($path);
       $mpd->Play();  
@@ -48,8 +53,13 @@ if($mpd->connected)
    if ($command == 'prev')
       $mpd->Previous();
    
-   if ($command == 'volume')
-      $mpd->SetVolume($volume);
+   if ($command == 'volume') {
+    if ($terminal['HOST']=='localhost') {
+     safe_exec('amixer  sset PCM,0 '.$volume.'%');
+    } else {
+     $mpd->SetVolume($volume);
+    }
+   }
    
    if ($command == 'close')
       $mpd->Stop();

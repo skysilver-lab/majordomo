@@ -24,6 +24,8 @@ $dictionary=array(
 'FRONTEND'=>'Front End',
 'MY_ACCOUNT'=>'My Account',
 'LOGOFF'=>'Logoff',
+'CONSOLE'=>'Console',
+'CONSOLE_RETRY'=>'Retry',
 'MODULE_DESCRIPTION'=>'Module Description on the Web',
 
 'GENERAL_SENSORS'=>'Sensors',
@@ -73,11 +75,16 @@ $dictionary=array(
 'APP_PLAYER'=>'Player Control',
 'APP_MEDIA_BROWSER'=>'Media Library',
 'APP_PRODUCTS'=>'Products Inventory',
-'APP_TDWIKI'=>'TdWiKi Notepad',
+'APP_TDWIKI'=>'Notepad',
 'APP_WEATHER'=>'Weather Informer',
 'APP_CALENDAR'=>'Calendar',
 'APP_READIT'=>'ReadIt',
 'APP_QUOTES'=>'Quotes',
+'APP_ALARMCLOCK'=>'AlarmClock',
+'APP_OPENWEATHER'=>'Weather from OpenWeatherMap',
+'SYS_DATEFORMAT'=>'Date format',
+'APP_YATRAFFIC'=>'Yandex.Traffic',
+'APP_CHATBOX'=>'ChatBox',
 
 'MODULE_OBJECTS_HISTORY'=>'Objects History',
 'MODULE_BT_DEVICES'=>'Bluetooth Devices',
@@ -159,8 +166,6 @@ $dictionary=array(
 
 
 'BY_URL'=>'By URL', 
-'TEST'=>'Test', 
-
 
 'COMMAND_LINE'=>'Using command-line', 
 
@@ -302,6 +307,7 @@ $dictionary=array(
 
 'TEXT_BOX'=>'Text field', 
 'DATE_BOX'=>'Date field', 
+'COLOR_PICKER'=>'Color-picker', 
 
 
 'CUSTOM_HTML_BOX'=>'Custom HTML-code', 
@@ -316,6 +322,7 @@ $dictionary=array(
 
 'STEP_VALUE'=>'Step value', 
 'DATA'=>'Data', 
+'INTERFACE'=>'Interface', 
 
 
 'AUTO_UPDATE_PERIOD'=>'Auto update period', 
@@ -781,6 +788,13 @@ $dictionary=array(
 
 
 'SWITCH_SCENE_WHEN_ACTIVATED'=>'switch scene when activated', 
+'APPEAR_ANIMATION'=>'Appear animation', 
+'APPEAR_LEFTTORIGHT'=>'Left-to-Right', 
+'APPEAR_RIGHTTOLEFT'=>'Right-to-Left', 
+'APPEAR_TOPTOBOTTOM'=>'Top-to-Bottom', 
+'APPEAR_BOTTOMTOTOP'=>'Bottom-to-Top', 
+'APPEAR_BLINK'=>'Blink', 
+'APPEAR_SCALE'=>'Scale', 
 
 
 'ADD_NEW_ELEMENT'=>'Add new element', 
@@ -823,6 +837,7 @@ $dictionary=array(
 'LOCATIONS'=>'Locations', 
 'DEVICES'=>'Devices', 
 'ACTIONS'=>'Actions', 
+'HOME_LOCATION'=>'Home location', 
 
 
 'ACTION_TYPE'=>'Action type', 
@@ -947,7 +962,8 @@ $dictionary=array(
 'VARIABLES'=>'Variables',
 'FUNCTIONS'=>'Functions',
 
-'SCENE_HIDDEN'=>'Do not include in to the swappable list of scenes', 
+'SCENE_HIDDEN'=>'Do not include in to the swappable list of scenes',
+'SCENE_AUTO_SCALE'=>'Auto zoom scene to device with',
 
 'DO_NOTHING'=>'Do nothing',
 'DO_ONCLICK'=>'On click',
@@ -1015,10 +1031,19 @@ $dictionary=array(
 'CONDITION'=>'Condition',
 'ADD_EXIT_CODE'=>'Add "exit" code',
 'SMART_REPEAT'=>'Smart Repeat',
+'ADVANCED_CONFIG'=>'Advanced config',
 'UPDATE_ALL_EXTENSIONS'=>'Update all extensions installed',
+
+'SAVE_CHANGES'=>'Save changes',
+'ADD_PANE'=>'Add Pane',
 
 'HCB'=>' <a href="http://majordomo.smartliving.ru/Hints/',
 'HCE'=>'?skin=hint" class="wiki_hint fancybox.iframe"><i class="glyphicon glyphicon-info-sign"></i></a>',
+
+    'DATA_KEY' => 'Key data',
+    'DATA_TYPE' => 'Data type',
+    'DATA_TYPE_GENERAL' => 'General',
+    'CLASS_TEMPLATE' => 'Template',
 
 'TEST'=>'test'
 

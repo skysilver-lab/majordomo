@@ -34,16 +34,16 @@
    $rec['IS_DYNAMIC']=(int)$is_dynamic;
   //updating 'LINKED_OBJECT' (varchar)
    global $linked_object;
-   $rec['LINKED_OBJECT']=$linked_object;
+   $rec['LINKED_OBJECT']=$linked_object.'';
   //updating 'LINKED_PROPERTY' (varchar)
    global $linked_property;
-   $rec['LINKED_PROPERTY']=$linked_property;
+   $rec['LINKED_PROPERTY']=$linked_property.'';
   //updating 'CONDITION' (select)
    global $condition;
    $rec['CONDITION']=$condition;
   //updating 'CONDITION_VALUE' (varchar)
    global $condition_value;
-   $rec['CONDITION_VALUE']=$condition_value;
+   $rec['CONDITION_VALUE']=$condition_value.'';
   //updating 'SCRIPT_ID' (int)
    if (IsSet($this->script_id)) {
     $rec['SCRIPT_ID']=$this->script_id;
@@ -80,13 +80,18 @@
    $out['CONDITION_OPTIONS'][]=array('VALUE'=>$value, 'TITLE'=>$title);
    $condition_opt[$value]=$title;
   }
-  for($i=0;$i<count($out['CONDITION_OPTIONS']);$i++) {
-   if ($out['CONDITION_OPTIONS'][$i]['VALUE']==$rec['CONDITION']) {
-    $out['CONDITION_OPTIONS'][$i]['SELECTED']=1;
-    $out['CONDITION']=$out['CONDITION_OPTIONS'][$i]['TITLE'];
-    $rec['CONDITION']=$out['CONDITION_OPTIONS'][$i]['TITLE'];
+
+  $optionsConditionCnt = count($out['CONDITION_OPTIONS']);
+  for ($i = 0; $i < $optionsConditionCnt;$i++)
+  {
+      if ($out['CONDITION_OPTIONS'][$i]['VALUE'] == $rec['CONDITION'])
+      {
+         $out['CONDITION_OPTIONS'][$i]['SELECTED'] = 1;
+         $out['CONDITION'] = $out['CONDITION_OPTIONS'][$i]['TITLE'];
+         $rec['CONDITION'] = $out['CONDITION_OPTIONS'][$i]['TITLE'];
+      }
    }
-  }
+
   if (is_array($rec)) {
    foreach($rec as $k=>$v) {
     if (!is_array($v)) {

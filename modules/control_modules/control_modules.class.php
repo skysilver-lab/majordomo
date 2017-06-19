@@ -134,7 +134,7 @@ function getParams() {
   $this->getModulesList();
   $lst=$this->modules;
   $lstCnt = count($lst);
-  
+
   for ($i = 0; $i < $lstCnt ;$i++)
   {
    $rec=SQLSelectOne("SELECT *, DATE_FORMAT(ADDED, '%M %d, %Y (%H:%i)') as DAT FROM project_modules WHERE NAME='".$lst[$i]['FILENAME']."'");
@@ -180,24 +180,32 @@ function getParams() {
 function install($parent_name = "")
 {
    parent::install($parent_name);
-  
+
    $this->getModulesList();
-   
+
    $lst    = $this->modules;
+
+   $prelist=array('objects', 'devices');
+   $prelist=array_reverse($prelist);
+   foreach($prelist as $v) {
+    $rec=array('FILENAME'=>$v);
+    array_unshift($lst, $rec);
+   }
+
    $lstCnt = count($lst);
    $code   = "";
-   
+
    for ($i = 0; $i < $lstCnt; $i++)
    {
       if (file_exists(DIR_MODULES . $lst[$i]['FILENAME'] . "/" . $lst[$i]['FILENAME'] . ".class.php"))
       {
          if ($lst[$i]['FILENAME'] == 'control_modules')
             continue;
-            
+
          $installedFile = DIR_MODULES . $lst[$i]['FILENAME'] . "/installed";
          if (file_exists($installedFile))
             unlink($installedFile);
-         
+
          include_once(DIR_MODULES . $lst[$i]['FILENAME'] . "/" . $lst[$i]['FILENAME'] . ".class.php");
          $obj = "\$object$i";
          $code = "$obj=new " . $lst[$i]['FILENAME'] . ";\n";
@@ -205,8 +213,8 @@ function install($parent_name = "")
          @eval("$code");
       }
    }
-   
-   
+
+
    SQLExec("UPDATE project_modules SET HIDDEN=0 WHERE NAME LIKE '" . $this->name . "'");
 }
 
@@ -215,17 +223,17 @@ function install($parent_name = "")
   $data = <<<EOD
 
    project_modules: ID tinyint(3) unsigned NOT NULL auto_increment
-   project_modules: NAME varchar(50)  DEFAULT '' NOT NULL 
-   project_modules: TITLE varchar(100)  DEFAULT '' NOT NULL 
-   project_modules: CATEGORY varchar(50)  DEFAULT '' NOT NULL 
-   project_modules: PARENT_NAME varchar(50)  DEFAULT '' NOT NULL 
+   project_modules: NAME varchar(50)  DEFAULT '' NOT NULL
+   project_modules: TITLE varchar(100)  DEFAULT '' NOT NULL
+   project_modules: CATEGORY varchar(50)  DEFAULT '' NOT NULL
+   project_modules: PARENT_NAME varchar(50)  DEFAULT '' NOT NULL
    project_modules: DATA text
    project_modules: HIDDEN int(3)  DEFAULT '0' NOT NULL
    project_modules: PRIORITY int(10)  DEFAULT '0' NOT NULL
-   project_modules: ADDED timestamp(14)
+   project_modules: ADDED timestamp
 
    ignore_updates: ID tinyint(3) unsigned NOT NULL auto_increment
-   ignore_updates: NAME varchar(50)  DEFAULT '' NOT NULL 
+   ignore_updates: NAME varchar(50)  DEFAULT '' NOT NULL
 
 
 EOD;
@@ -234,4 +242,3 @@ EOD;
 
 // --------------------------------------------------------------------
 }
-?>

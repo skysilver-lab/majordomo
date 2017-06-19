@@ -1,6 +1,6 @@
 <?php
 /**
-* ���������� 
+* я┐╜я┐╜я┐╜я┐╜я┐╜я┐╜я┐╜я┐╜я┐╜я┐╜ 
 *
 * Saverestore
 *
@@ -139,7 +139,15 @@ function admin(&$out) {
 
  $this->getConfig();
 
- $github_feed=getURL('https://github.com/sergejey/majordomo/commits/master.atom', 30*60);
+ if (defined('MASTER_UPDATE_URL') && MASTER_UPDATE_URL!='') {
+  $github_feed_url=MASTER_UPDATE_URL;
+  $github_feed_url=str_replace('/archive/','/commits/',$github_feed_url);
+  $github_feed_url=str_replace('.tar.gz','.atom',$github_feed_url);
+ } else {
+  $github_feed_url='https://github.com/sergejey/majordomo/commits/master.atom';
+ }
+ $github_feed=getURL($github_feed_url, 30*60);
+
  if ($github_feed!='') {
   @$tmp=GetXMLTree($github_feed);
   @$data=XMLTreeToArray($tmp);
@@ -305,12 +313,31 @@ function admin(&$out) {
   $this->getLatest($out);
  }
 
+ if ($this->mode=='getlatest_iframe') {
+  global $with_extensions;
+  $out['WITH_EXTENSIONS']=$with_extensions;
+
+  global $backup;
+  $out['BACKUP']=$backup;
+  global $data;
+  $out['DATA']=$data;
+  global $code;
+  $out['CODE']=$code;
+  global $files;
+  $out['FILES']=$files;
+  global $design;
+  $out['DESIGN']=$design;
+
+ }
+
+
 
   $source=ROOT.'saverestore';
   $currentdir=getcwd();
   chdir($source); 
   array_multisort(array_map('filemtime', ($files = glob("*.*"))), SORT_DESC, $files);
   chdir($currentdir); 
+  $out['FILES']=array();
   foreach($files as $file){
      $tmp=array();
      $tmp['FILENAME']=$file;
@@ -330,9 +357,15 @@ function admin(&$out) {
  *
  * @access public
  */
-  function getLatest(&$out) {
+  function getLatest(&$out, $iframe=0) {
 
-   $url='https://github.com/sergejey/majordomo/archive/master.tar.gz';
+   
+   if (defined('MASTER_UPDATE_URL') && MASTER_UPDATE_URL!='') {
+    $url=MASTER_UPDATE_URL;
+   } else {
+    $url='https://github.com/sergejey/majordomo/archive/master.tar.gz';
+   }
+   $this->url=$url;
 
    set_time_limit(0);
 
@@ -350,6 +383,11 @@ function admin(&$out) {
     if ($f == FALSE){
       $this->redirect("?err_msg=".urlencode("Cannot open ".$filename." for writing"));
     } 
+
+   if ($iframe) {
+    $this->echonow("Downloading $url ... ");
+   }
+
    $ch = curl_init();
    curl_setopt($ch, CURLOPT_URL, $url);
    curl_setopt($ch, CURLOPT_TIMEOUT, 600);
@@ -364,22 +402,57 @@ function admin(&$out) {
 
    if (file_exists($filename)) {
 
+    if ($iframe) {
+     $this->echonow(" OK<br/>", "green");
+    }
+
+
     global $code;
     global $data;
     global $design;
     $code=1;
-    $data=0;
+    $data=1; //fix
     $design=1;
     $out['BACKUP']=1;
-    $this->dump($out);
-    $this->removeTree(ROOT.'saverestore/temp');
-    global $with_extensions;
-    $this->redirect("?mode=upload&restore=".urlencode('master.tgz')."&folder=".urlencode('majordomo-master')."&with_extensions=".$with_extensions);
+    $this->dump($out, $iframe);
+    $this->removeTree(ROOT.'saverestore/temp', $iframe);
+
+    if (!$iframe) {
+     global $with_extensions;
+     $folder='majordomo-master';
+     $basename=basename($this->url);
+     if ($basename!='master.tar.gz') {
+      $basename=str_replace('.tar.gz', '', $basename);
+      $folder=str_replace('master', $basename, $folder);
+     }
+     $this->redirect("?mode=upload&restore=".urlencode('master.tgz')."&folder=".urlencode($folder)."&with_extensions=".$with_extensions);
+    } else {
+     return 1;
+    }
+
    } else {
-    $this->redirect("?err_msg=".urlencode("Cannot download ".$url));
+
+    if ($iframe) {
+     $this->echonow("Cannot download file<br/>", "red");exit;
+    } else {
+     $this->redirect("?err_msg=".urlencode("Cannot download ".$url));
+    }
    }
   }
 
+
+ function echonow($msg, $color='') {
+  if ($color) {
+   echo '<font color="'.$color.'">';
+  }
+  echo $msg;
+  if ($color) {
+   echo '</font>';
+  }
+  echo str_repeat(' ', 16*1024);
+  flush();
+  ob_flush();
+ }
 
 /**
 * Title
@@ -800,7 +873,7 @@ function admin(&$out) {
   global $code;
   global $data;
   $code=1;
-  $data=0;
+  $data=1;
   $out['BACKUP']=1;
   $this->dump($out);
   $this->removeTree(ROOT.'saverestore/temp');
@@ -1088,7 +1161,7 @@ function getLocalFilesTree($dir, $pattern, $ex_pattern, &$log, $verbose) {
 *
 * @access public
 */
- function upload(&$out) {
+ function upload(&$out, $iframe=0) {
 
   set_time_limit(0);
   global $restore;
@@ -1113,10 +1186,18 @@ function getLocalFilesTree($dir, $pattern, $ex_pattern, &$log, $verbose) {
   umask(0);
   @mkdir(ROOT.'saverestore/temp', 0777);
 
+  if ($iframe) {
+   $this->echonow("<b>Applying updates.</b><br/>");
+  }
+
+
   if ($file!='') { // && mkdir(ROOT.'saverestore/temp', 0777)
 
        chdir(ROOT.'saverestore/temp');
 
+      if ($iframe) {
+       $this->echonow("Unpacking $file ... ");
+      }
       if (IsWindowsOS())
       {
          // for windows only
@@ -1132,8 +1213,12 @@ function getLocalFilesTree($dir, $pattern, $ex_pattern, &$log, $verbose) {
       @unlink(ROOT.'saverestore/temp'.$folder.'/config.php');
 
        //print_r($output);exit;
+      if ($iframe) {
+       $this->echonow(" OK<br/> ", 'green');
+      }
 
-       
+
+
 
         chdir('../../');
 
@@ -1149,10 +1234,31 @@ function getLocalFilesTree($dir, $pattern, $ex_pattern, &$log, $verbose) {
           }
          }
 
-         // UPDATING FILES DIRECTLY
-        $this->copyTree(ROOT.'saverestore/temp'.$folder, ROOT, 1); // restore all files
-    
+      if ($iframe) {
+       $this->echonow("Updating files ... ");
+      }
 
+
+         // UPDATING FILES DIRECTLY
+         $this->copyTree(ROOT.'saverestore/temp'.$folder, ROOT, 1); // restore all files
+
+      if ($iframe) {
+       $this->echonow(" OK<br/> ", 'green');
+      }
+
+        if (file_exists(ROOT.'saverestore/temp'.$folder.'/dump.sql')) {
+         // data restore
+         if ($iframe) {
+          $this->echonow("Restoring database ... ");
+         }
+         $this->restoredatabase(ROOT.'saverestore/temp'.$folder.'/dump.sql');
+         $this->echonow(" OK<br/> ", 'green');
+        }
+
+
+      if ($iframe) {
+       $this->echonow("Re-installing modules ... ");
+      }
 
         //if (is_dir(ROOT.'saverestore/temp/'.$folder.'modules')) {
         // code restore
@@ -1165,16 +1271,25 @@ function getLocalFilesTree($dir, $pattern, $ex_pattern, &$log, $verbose) {
           }
          }
          @unlink(ROOT."modules/control_modules/installed");
-         @SaveFile(ROOT.'reboot', 'updated');
+
+      if ($iframe) {
+       $this->echonow(" OK<br/> ", 'green');
+      }
+
 
         //}
 
 
 
-        if (file_exists(ROOT.'saverestore/temp'.$folder.'/dump.sql')) {
-         // data restore
-         $this->restoredatabase(ROOT.'saverestore/temp'.$folder.'/dump.sql');
-        }
+      if ($iframe) {
+       $this->echonow("Rebooting system ... ");
+      }
+
+      @SaveFile(ROOT.'reboot', 'updated');
+      if ($iframe) {
+       $this->echonow(" OK<br/> ", 'green');
+      }
+
 
         $this->config['LATEST_UPDATED_ID']=$out['LATEST_ID'];
 
@@ -1183,8 +1298,12 @@ function getLocalFilesTree($dir, $pattern, $ex_pattern, &$log, $verbose) {
         $this->saveConfig();
 
         global $with_extensions;
-        $this->redirect("?mode=clear&ok_msg=".urlencode("Updates Installed!")."&with_extensions=".$with_extensions);
 
+        if ($iframe) {
+         return 1;
+        } else {
+         $this->redirect("?mode=clear&ok_msg=".urlencode("Updates Installed!")."&with_extensions=".$with_extensions);
+        }
 
   }
 
@@ -1207,13 +1326,22 @@ function getLocalFilesTree($dir, $pattern, $ex_pattern, &$log, $verbose) {
 *
 * @access public
 */
- function dump(&$out) {
+ function dump(&$out, $iframe=0) {
   
+  if ($iframe) {
+     $this->echonow("<b>Working on backup.</b><br/>");
+  }
+
   
   if (mkdir(ROOT.'saverestore/temp', 0777)) {   
    // DESIGN
    global $design;
    if ($design) {
+
+    if ($iframe) {
+     $this->echonow("Saving design ... ");
+    }
+
     $tar_name.='design_';
     $this->copyTree(ROOT.'templates', ROOT.'saverestore/temp/templates');
     $this->copyTree(ROOT.'img', ROOT.'saverestore/temp/img');
@@ -1229,15 +1357,28 @@ function getLocalFilesTree($dir, $pattern, $ex_pattern, &$log, $verbose) {
     $pt=array('\.htc');
     $this->copyFiles(ROOT, ROOT.'saverestore/temp', 0, $pt);
 
+    if ($iframe) {
+     $this->echonow(" OK<br/>", 'green');
+    }
+
+
    }
 
    // CODE
    global $code;
    if ($code) {
+
+    if ($iframe) {
+     $this->echonow("Saving code ... ");
+    }
+
+
     $tar_name.='code_';
     
     $this->copyTree(ROOT.'lib', ROOT.'saverestore/temp/lib');
     $this->copyTree(ROOT.'modules', ROOT.'saverestore/temp/modules');
+    $this->copyTree(ROOT.'scripts', ROOT.'saverestore/temp/scripts');
+    $this->copyTree(ROOT.'languages', ROOT.'saverestore/temp/languages');
 
     $pt=array('\.php');
     $this->copyFiles(ROOT, ROOT.'saverestore/temp', 0, $pt);
@@ -1250,21 +1391,37 @@ function getLocalFilesTree($dir, $pattern, $ex_pattern, &$log, $verbose) {
      $this->copyTree(ROOT.'js', ROOT.'saverestore/temp/js');
      $this->copyTree(ROOT.'templates', ROOT.'saverestore/temp/templates');
     }
+
+    if ($iframe) {
+     $this->echonow(" OK<br/>", 'green');
+    }
+
+
    }
 
    // DATA
    global $data;
    if ($data) {
+
+    if ($iframe) {
+     $this->echonow("Saving data ... ");
+    }
+
     $tar_name.='data_';
     $this->copyTree(ROOT.'cms', ROOT.'saverestore/temp/cms');
     $this->backupdatabase(ROOT.'saverestore/temp/dump.sql');
+
+    if ($iframe) {
+     $this->echonow(" OK<br/>", 'green');
+    }
+
+
    }
 
    // FILES
    global $files;
    if ($files) {
     $tar_name.='files_';
-    //$this->copyTree(ROOT.'photos', ROOT.'saverestore/temp/photos');
    }
 
    
@@ -1274,10 +1431,20 @@ function getLocalFilesTree($dir, $pattern, $ex_pattern, &$log, $verbose) {
    
    if (isset($out['BACKUP'])) 
       $tar_name = 'backup_' . $tar_name;
-   
+
+   if ($iframe) {
+    $this->echonow("Packing $tar_name ... ");
+   }
+
+
    if (IsWindowsOS())
    {
-      exec('tar.exe  --strip-components=2 -cvf ./saverestore/'.$tar_name.' ./saverestore/temp/');
+      $result=exec('tar.exe --strip-components=2 -C ./saverestore/temp/ -cvf ./saverestore/'.$tar_name.' ./');
+      $new_name=str_replace('.tar', '.tar.gz', $tar_name);
+      $result=exec('gzip.exe ./saverestore/'.$tar_name);
+      if (file_exists('./saverestore/'.$new_name)) {
+       $tar_name =  $new_name;
+      }
    }
    else
    {
@@ -1286,13 +1453,25 @@ function getLocalFilesTree($dir, $pattern, $ex_pattern, &$log, $verbose) {
       chdir('../../');
    }
 
+    if ($iframe) {
+     $this->echonow(" OK<br/>", 'green');
+    }
+
+
    if (defined('SETTINGS_BACKUP_PATH') && SETTINGS_BACKUP_PATH!='' && file_exists(ROOT.'saverestore/'.$tar_name)) {
+    if ($iframe) {
+     $this->echonow("Copying to ".$dest.$tar_name." ... ");
+    }
     $dest=SETTINGS_BACKUP_PATH;
     @copy(ROOT.'saverestore/'.$tar_name, $dest.$tar_name);
+    if ($iframe) {
+     $this->echonow(" OK<br/>", 'green');
+    }
    }
 
 
   }
+  return $tar_name;
  }
 
 /**
@@ -1320,40 +1499,6 @@ function getLocalFilesTree($dir, $pattern, $ex_pattern, &$log, $verbose) {
 * @access public
 */
  function backupdatabase($filename) {
-  /*
-  global $db;
-
-  $tables1 = SQLSelect("SHOW TABLES;");
-  foreach($tables1 as $t) {
-   foreach($t as $k=>$v) {
-    $tables[]=$v;
-   }
-  }
-  $ignores=array('statistic', 'pot_accesslog', 'pot_add_data', 'pot_documents', 'pot_exit_targets', 'pot_hostnames', 
-                 'pot_operating_systems', 'pot_referers', 'pot_search_engines', 'pot_user_agents', 'pot_visitors');
-  for($i=0;$i<count($ignores);$i++) {
-   $ignore[$ignores[$i]]=1;
-  }
-
-  $newfile="";
-  for($i=0;$i<count($tables);$i++) {
-   $table=$tables[$i];
-   if (!IsSet($ignore[$table])) {
-           $newfile .= "\n# ----------------------------------------------------------\n#\n";
-           $newfile .= "# structur for table '$table'\n#\n";
-           $newfile .= $db->get_mysql_def($table);
-           $newfile .= "\n\n";
-           $newfile .= "#\n# data for table '$table'\n#\n";
-           $newfile .= $db->get_mysql_content($table);
-           $newfile .= "\n\n";   
-   }
-  }
-
-  $fp = fopen ($filename,"w");
-  fwrite ($fp,$newfile);
-  fclose ($fp);
-  */
-
    if (defined('PATH_TO_MYSQLDUMP'))
       $pathToMysqlDump = PATH_TO_MYSQLDUMP;
    else
@@ -1369,7 +1514,7 @@ function getLocalFilesTree($dir, $pattern, $ex_pattern, &$log, $verbose) {
 *
 * @access public
 */
- function removeTree($destination) {
+ function removeTree($destination, $iframe=0) {
 
   $res=1;
 
@@ -1377,6 +1522,12 @@ function getLocalFilesTree($dir, $pattern, $ex_pattern, &$log, $verbose) {
     return 0; // cannot create destination path
   }
  if ($dir = @opendir($destination)) { 
+
+  if ($iframe) {
+     $this->echonow("Removing dir $destination ... ");
+  }
+
+
   while (($file = readdir($dir)) !== false) { 
     if (Is_Dir($destination."/".$file) && ($file!='.') && ($file!='..')) {
      $res=$this->removeTree($destination."/".$file);
@@ -1386,6 +1537,12 @@ function getLocalFilesTree($dir, $pattern, $ex_pattern, &$log, $verbose) {
   }     
   closedir($dir); 
   $res=@rmdir($destination);
+
+  if ($iframe) {
+     $this->echonow("OK<br/>", "green");
+  }
+
+
  }
  return $res;
  }
@@ -1522,7 +1679,7 @@ function ftpget($conn_id, $local_file, $remote_file, $mode) {
 function ftpmkdir($conn_id, $ftp_dir)
 {
    global $set_dirs;
-   
+
    $tmp     = explode('/', $ftp_dir);
    $res_dir = $tmp[0];
    $tmpCnt  = count($tmp);

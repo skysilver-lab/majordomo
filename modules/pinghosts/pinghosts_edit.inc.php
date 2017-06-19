@@ -101,7 +101,7 @@
   //UPDATING RECORD
    if ($ok) {
     $rec['STATUS']=0;
-    $rec['CHECK_LATEST']='';
+    $rec['CHECK_LATEST']=date('Y-m-d H:i:s');
     $rec['CHECK_NEXT']=date('Y-m-d H:i:s');
     if ($rec['ID']) {
      SQLUpdate($table_name, $rec); // update
@@ -127,14 +127,14 @@
    $out['TYPE_OPTIONS'][]=array('VALUE'=>$value, 'TITLE'=>$title);
    $type_opt[$value]=$title;
   }
-  
+
   $optionsTypeCnt = count($out['TYPE_OPTIONS']);
   for ($i = 0; $i < $optionsTypeCnt;$i++)
-   {
-       if ($out['TYPE_OPTIONS'][$i]['VALUE'] == $rec['TYPE'])
-          $out['TYPE_OPTIONS'][$i]['SELECTED'] = 1;
-   }
-  
+  {
+      if ($out['TYPE_OPTIONS'][$i]['VALUE'] == $rec['TYPE'])
+         $out['TYPE_OPTIONS'][$i]['SELECTED'] = 1;
+  }
+
   if (is_array($rec)) {
    foreach($rec as $k=>$v) {
     if (!is_array($v)) {

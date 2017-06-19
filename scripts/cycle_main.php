@@ -16,8 +16,19 @@ include_once(DIR_MODULES . "control_modules/control_modules.class.php");
 
 $ctl = new control_modules();
 
-$sqlQuery = "SELECT * 
-               FROM classes 
+setGlobal((str_replace('.php', '', basename(__FILE__))) . 'Run', time(), 1);
+
+$run_from_start = 1;
+include("./scripts/startup_maintenance.php");
+$run_from_start = 0;
+
+setGlobal('ThisComputer.started_time', time());
+getObject('ThisComputer')->raiseEvent("StartUp");
+
+
+
+$sqlQuery = "SELECT *
+               FROM classes
               WHERE TITLE LIKE 'timer'";
 
 $timerClass = SQLSelectOne($sqlQuery);
@@ -35,9 +46,16 @@ else
 
 $old_minute = date('i');
 $old_hour = date('h');
+if ($_GET['onetime']) {
+ $old_minute = -1;
+ if (date('i') == '00') {
+  $old_hour = -1;
+ }
+}
 $old_date = date('Y-m-d');
 
 $checked_time = 0;
+$started_time = time();
 
 echo date("H:i:s") . " running " . basename(__FILE__) . "\n";
 
@@ -47,50 +65,102 @@ while (1)
    {
       $checked_time = time();
       setGlobal((str_replace('.php', '', basename(__FILE__))) . 'Run', time(), 1);
+      setGlobal('ThisComputer.uptime', time()-getGlobal('ThisComputer.started_time'));
    }
 
    $m = date('i');
    $h = date('h');
    $dt = date('Y-m-d');
-   
+
    if ($m != $old_minute)
    {
-      echo "new minute\n";
+      //echo "new minute\n";
       $sqlQuery = "SELECT ID, TITLE
                      FROM objects
                     WHERE $o_qry";
-      
+
       $objects = SQLSelect($sqlQuery);
       $total = count($objects);
-      
+
       for ($i = 0; $i < $total; $i++)
       {
-         echo $objects[$i]['TITLE'] . "->onNewMinute\n";
-         getObject($objects[$i]['TITLE'])->raiseEvent("onNewMinute");
+         echo date('H:i:s').' '.$objects[$i]['TITLE'] . "->onNewMinute\n";
          getObject($objects[$i]['TITLE'])->setProperty("time", date('Y-m-d H:i:s'));
+         getObject($objects[$i]['TITLE'])->raiseEvent("onNewMinute");
       }
-      
+
       $old_minute = $m;
    }
-   
+
    if ($h != $old_hour)
    {
       $sqlQuery = "SELECT ID, TITLE
                      FROM objects
                     WHERE $o_qry";
-      
-      echo "new hour\n";
+
+      //echo "new hour\n";
       $old_hour = $h;
       $objects = SQLSelect($sqlQuery);
       $total = count($objects);
-      
+
       for($i = 0; $i < $total; $i++)
+      {
+         echo date('H:i:s').' '.$objects[$i]['TITLE'] . "->onNewHour\n";
          getObject($objects[$i]['TITLE'])->raiseEvent("onNewHour");
+      }
+
+      processSubscriptions('HOURLY');
+
    }
-   
+
+   $keep=SQLSelect("SELECT DISTINCT VALUE_ID,KEEP_HISTORY FROM phistory_queue");
+   if ($keep[0]['VALUE_ID']) {
+    $total=count($keep);
+    for($i=0;$i<$total;$i++) {
+     $keep_rec=$keep[$i];
+     SQLExec("DELETE FROM phistory WHERE VALUE_ID='".$keep_rec['VALUE_ID']."' AND TO_DAYS(NOW())-TO_DAYS(ADDED)>".(int)$keep_rec['KEEP_HISTORY']);
+    }
+   }
+
+   $queue=SQLSelect("SELECT * FROM phistory_queue ORDER BY ID LIMIT 500");
+   if ($queue[0]['ID']) {
+    $total=count($queue);
+    for($i=0;$i<$total;$i++) {
+     $q_rec=$queue[$i];
+     $value=$q_rec['VALUE'];
+     $old_value=$q_rec['OLD_VALUE'];
+
+     SQLExec("DELETE FROM phistory_queue WHERE ID='".$q_rec['ID']."'");
+
+     if ($value!=$old_value || (defined('HISTORY_NO_OPTIMIZE') && HISTORY_NO_OPTIMIZE==1)) {
+       SQLExec("DELETE FROM phistory WHERE VALUE_ID='".$q_rec['VALUE_ID']."' AND TO_DAYS(NOW())-TO_DAYS(ADDED)>".(int)$q_rec['KEEP_HISTORY']);
+       $h=array();
+       $h['VALUE_ID']=$q_rec['VALUE_ID'];
+       $h['ADDED']=$q_rec['ADDED'];
+       $h['VALUE']=$value;
+       $h['ID']=SQLInsert('phistory', $h);
+     } elseif ($value==$old_value) {
+       $tmp_history=SQLSelect("SELECT * FROM phistory WHERE VALUE_ID='".$q_rec['VALUE_ID']."' ORDER BY ID DESC LIMIT 2");
+       $prev_value=$tmp_history[0]['VALUE'];
+       $prev_prev_value=$tmp_history[1]['VALUE'];
+       if ($prev_value==$prev_prev_value) {
+         $tmp_history[0]['ADDED']=$q_rec['ADDED'];
+         SQLUpdate('phistory', $tmp_history[0]);
+       } else {
+         $h=array();
+         $h['VALUE_ID']=$q_rec['VALUE_ID'];
+         $h['ADDED']=$q_rec['ADDED'];
+         $h['VALUE']=$value;
+         $h['ID']=SQLInsert('phistory', $h);
+       }
+     }
+
+    }
+   }
+
    if ($dt != $old_date)
    {
-      echo "new day\n";
+      //echo "new day\n";
       $old_date = $dt;
    }
 

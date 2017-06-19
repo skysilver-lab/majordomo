@@ -10,6 +10,24 @@
  * @copyright http://www.au78.com/ (c) 2002-2008
  * @version 1.0b
  */
+
+/**
+ * MySQL database class
+ * @category DataBase
+ * @package Framework
+ * @author Serge Dzheigalo <info@au78.com>
+ * @copyright 2002-2008 Atmatic
+ * @license http://opensource.org/licenses/mit-license.php MIT License
+ * @link https://github.com/sergejey/majordomo/blob/master/lib/mysql.class.php
+ */
+
+if (!defined('MYSQL_BOTH')) {
+ define('MYSQL_BOTH',MYSQLI_BOTH);
+ define('MYSQL_NUM',MYSQLI_NUM);
+ define('MYSQL_ASSOC',MYSQLI_ASSOC);
+}
+
+
 class mysql
 {
    /**
@@ -47,47 +65,60 @@ class mysql
     * @access private
     */
    var $dbh;
+
+   /**
+    * @var int latest transaction timestamp
+    * @access private
+    */
+   var $latestTransaction;
+
+   /**
+    * @var int connection check timeout
+    * @access private
+    */
+   var $pingTimeout;
    
    /**
     * MySQL constructor
-    *
     * used to create mysql database object and connect to database
-    *
-    * @param string $host mysql host
-    * @param string $port mysql port
-    * @param string $user mysql user
-    * @param string $password mysql password
-    * @param string $database mysql database name
+    * @param string $host     Mysql host
+    * @param string $port     Mysql port
+    * @param string $user     Mysql user
+    * @param string $password Mysql password
+    * @param string $database Mysql database name
     * @access public
     */
-   function mysql($host, $port, $user, $password, $database)
+   public function __construct($host, $port, $user, $password, $database)
    {
-      $this->host = $host;
-      $this->port = $port;
-      $this->user = $user;
+      $this->host     = $host;
+      $this->port     = $port;
+      $this->user     = $user;
       $this->password = $password;
-      $this->dbName = $database;
+      $this->dbName   = $database;
+
+      $this->latestTransaction = time();
+      $this->pingTimeout = 5*60;
+
       $this->Connect();
-   }   
+   }
 
    /**
     * Connects to database
-    *
-    * @return bool connection result (1 - success, 0 - failed)
     * @access private
+    * @return int connection result (1 - success, 0 - failed)
     */
-   function Connect() 
+   public function Connect()
    {
       // connects to database
-      $this->dbh = @mysql_connect($this->host.":".$this->port, $this->user, $this->password);
+      $this->dbh = @mysql_connect($this->host . ":" . $this->port, $this->user, $this->password);
       
-      if (!@mysql_select_db($this->dbName, $this->dbh)) 
+      if (!@mysql_select_db($this->dbName, $this->dbh))
       {
          $this->Error();
          
          return 0;
       }
-      else 
+      else
       {
          mysql_query("SET NAMES 'utf8';", $this->dbh);
          mysql_query("SET CHARACTER SET 'utf8';", $this->dbh);
@@ -101,16 +132,21 @@ class mysql
 
    /**
     * Execute SQL query
-    *
     * @param string $query SQL query
     * @return mixed execution result (0 - failed)
     * @access public
     */
-   function Exec($query)
+   public function Exec($query)
    {
+
+      if ((time()-$this->latestTransaction)>$this->pingTimeout) {
+       $this->Ping();
+      }
+
+      $this->latestTransaction=time(); 
       $result = mysql_query($query, $this->dbh);
       
-      if (!$result) 
+      if (!$result)
       {
          $this->Error($query);
          
@@ -129,24 +165,23 @@ class mysql
     * @return array execution result
     * @access public
     */
-   function Select($query)
+   public function Select($query)
    {
-      if ($result = mysql_query($query, $this->dbh)) 
+      $res = array();
+      
+      if ($result = mysql_query($query, $this->dbh))
       {
-         $res = array();
-         
-         for($i = 0; $i < mysql_num_rows($result); $i++) 
+         while ($rec = mysql_fetch_array($result, MYSQL_ASSOC))
          {
-            $rec = mysql_fetch_array($result, MYSQL_ASSOC);
             $res[] = $rec;
          }
-         
-         return $res;
       }
-      else 
+      else
       {
          $this->Error($query);
       }
+
+      return $res;
    }
 
    /**
@@ -155,21 +190,40 @@ class mysql
     * This method returns record assosiated array (by field names)
     *
     * @param string $query SQL SELECT query
-    * @return array execution result
+    * @return array|void execution result
     * @access public
     */
-   function SelectOne($query)
+   public function SelectOne($query)
    {
       if ($result = mysql_query($query, $this->dbh))
       {
          $rec = mysql_fetch_array($result, MYSQL_ASSOC);
          
          return $rec;
-      } 
+      }
       else
       {
          $this->Error($query);
       }
+   }
+
+   public function Ping()
+   {
+    //DebMes("mysql db ping");
+    $test_query = "SHOW TABLES FROM ".$this->dbName;
+    $result = @mysql_query($test_query, $this->dbh);
+    $tblCnt = 0;
+    if ($result) {
+     while($tbl = mysql_fetch_array($result)) {
+      $tblCnt++;
+     }
+    }
+    if ($tblCnt>0) {
+     return true;
+    } else {
+     $this->Disconnect();
+     $this->Connect();
+    }
    }
 
    /**
@@ -177,24 +231,31 @@ class mysql
     *
     * Record is defined by assosiated array
     *
-    * @param string $table table to update
-    * @param string $data record to update
-    * @param string $ndx index field (used in WHERE part of SQL request)
+    * @param string $table Table to update
+    * @param array  $data  Record to update
+    * @param string $ndx   Index field (used in WHERE part of SQL request)
+    * @return int
     * @access public
     */
-   function Update($table, $data, $ndx = "ID")
+   public function Update($table, $data, $ndx = "ID")
    {
       $qry = "UPDATE `$table` SET ";
       
-      foreach($data as $field=>$value)
+      foreach ($data as $field => $value)
       {
          if (!is_Numeric($field))
             $qry .= "`$field`='" . $this->DBSafe1($value) . "', ";
       }
       
-      $qry = substr($qry, 0, strlen($qry) - 2);
+      $qry  = substr($qry, 0, strlen($qry) - 2);
+
+      if (!isset($data[$ndx])) {
+       $data[$ndx]='';
+      }
+
       $qry .= " WHERE $ndx = '" . $data[$ndx] . "'";
-      
+
+     
       if (!mysql_query($qry, $this->dbh))
       {
          $this->Error($qry);
@@ -209,20 +270,20 @@ class mysql
     *
     * Record is defined by assosiated array
     *
-    * @param string $table table for new record
-    * @param string $data record to insert
-    * @return execution result (0 - if failed, INSERT ID - if succeed)
+    * @param string $table Table for new record
+    * @param array  $data  Record to insert
+    * @return int Execution result (0 - if failed, INSERT ID - if succeed)
     * @access public
     */
-   function Insert($table, &$data)
+   public function Insert($table, &$data)
    {
       $fields = "";
       $values = "";
       
-      foreach($data as $field=>$value) 
+      foreach ($data as $field => $value)
       {
-         if (!is_Numeric($field))
-         {  
+         if (!is_numeric($field))
+         {
             $fields .= "`$field`, ";
             $values .= "'" . $this->DBSafe1($value) . "', ";
          }
@@ -246,8 +307,9 @@ class mysql
     * Disconnect from database
     *
     * @access public
+    * @return void
     */
-   function Disconnect() 
+   public function Disconnect()
    {
       mysql_close($this->dbh);
    }
@@ -259,16 +321,22 @@ class mysql
     * @return string correct string
     * @access public
     */
-   function DbSafe($str)
+   public function DbSafe($str)
    {
       $str = mysql_real_escape_string($str);
       $str = str_replace("%", "\%", $str);
       return $str;
    }
 
-   function DbSafe1($str) 
+   /**
+    * Used to strip "bad" symbols from sql query results
+    * @param mixed $str string to make "safe"
+    * @access public
+    * @return string
+    */
+   public function DbSafe1($str)
    {
-      $str = mysql_real_escape_string($str);
+      $str = mysql_real_escape_string((string)$str);
       
       return $str;
    }
@@ -278,12 +346,16 @@ class mysql
     *
     * @param string $query used query string
     * @access private
+    * @return int
     */
-   function Error($query = "")
+   public function Error($query = "")
    {
-      registerError('sql', mysql_errno() . ": " . mysql_error() . "\n$query");
-      new error(mysql_errno() . ": " . mysql_error() . "<br>$query", 1);
-      
+
+      $err_no = mysql_errno();
+      $err_details = mysql_error();
+      registerError('sql', $err_no . ": " . $err_details . "\n$query");
+      new custom_error($err_no . ": " . $err_details . "<br>$query", 1);
+
       return 1;
    }
 
@@ -294,11 +366,11 @@ class mysql
     * @return string table definition
     * @access public
     */
-   function get_mysql_def($table)
+   public function get_mysql_def($table)
    {
-      $result = mysql_query('SHOW CREATE TABLE '.$table, $this->dbh);
+      $result = mysql_query('SHOW CREATE TABLE ' . $table, $this->dbh);
       
-      if ($result) 
+      if ($result)
       {
          $row = mysql_fetch_row($result);
          
@@ -308,9 +380,10 @@ class mysql
          $row[1] = preg_replace('/DEFAULT CHARSET=(\w+)/', '', $row[1]);
          $row[1] = str_replace(' default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP', '', $row[1]);
          $row[1] = str_replace("\n", ' ', $row[1]);
+         
          $strs = trim($row[1]);
             
-         return (empty($strs))? '' : 'DROP TABLE IF EXISTS ' . $table . ';' . "\n" . $row[1] . ';' . "\n";
+         return (empty($strs)) ? '' : 'DROP TABLE IF EXISTS ' . $table . ';' . "\n" . $row[1] . ';' . "\n";
       }
       
       return '';
@@ -323,24 +396,26 @@ class mysql
     * @return string table content
     * @access public
     */
-   function get_mysql_content($table) 
+   public function get_mysql_content($table)
    {
       $content = "";
-      $result = mysql_query("SELECT * FROM $table", $this->dbh);
+      $result  = mysql_query("SELECT * FROM $table", $this->dbh);
       
-      while($row = mysql_fetch_row($result)) 
+      while ($row = mysql_fetch_row($result))
       {
          $insert = "INSERT INTO $table VALUES (";
          
-         for($j = 0; $j < mysql_num_fields($result); $j++)
+         $filedsNum = mysql_num_fields($result);
+
+         for ($j = 0; $j < $filedsNum; $j++)
          {
-            if(!isset($row[$j])) $insert .= "NULL,";
-            else if($row[$j] != "") $insert .= "'".$this->DbSafe($row[$j])."',";
-            else $insert .= "'',";
+            if (!isset($row[$j]))    $insert .= "NULL,";
+            else if ($row[$j] != "") $insert .= "'" . $this->DbSafe($row[$j]) . "',";
+            else                     $insert .= "'',";
          }
          
-         $insert = ereg_replace(",$", "", $insert);
-         $insert .= ");\n";
+         $insert   = preg_replace("/,$/", "", $insert);
+         $insert  .= ");\n";
          $content .= $insert;
       }
       
@@ -348,10 +423,11 @@ class mysql
    }
 }
 
-// --------------------------------------------------------------------   
+// --------------------------------------------------------------------
 // DATABASE FUNCTIONS
 // easy database manipulation
-// --------------------------------------------------------------------   
+// --------------------------------------------------------------------
+
 /**
  * Execute SQL query
  *
@@ -368,12 +444,11 @@ function SQLExec($query)
 
 /**
  * Used to strip "bad" symbols from sql query results
- *
- * @param string $str string to make "safe"
+ * @param mixed $in String to make "safe"
  * @global object mysql database object
- * @return string correct string
+ * @return string
  */
-function DbSafe($in) 
+function DbSafe($in)
 {
    global $db;
    return $db->DbSafe($in);
@@ -414,10 +489,10 @@ function SQLSelectOne($query)
  *
  * Record is defined by assosiated array
  *
- * @param string $table table for new record
- * @param string $record record to insert
- * @global object mysql database object
- * @return execution result (0 - if failed, INSERT ID - if succeed)
+ * @param string $table  Table for new record
+ * @param array  $record Record to insert
+ * @global object Mysql database object
+ * @return int Execution result (0 - if failed, INSERT ID - if succeed)
  */
 function SQLInsert($table, &$record)
 {
@@ -427,12 +502,10 @@ function SQLInsert($table, &$record)
 
 /**
  * Execute SQL UPDATE query for one record
- *
- * Record is defined by assosiated array
- *
- * @param string $table table to update
- * @param string $record record to update
- * @global object mysql database object
+ * @param mixed $table  Table to update
+ * @param mixed $record Record to update (assosiated array)
+ * @param mixed $ndx    Update by this key (default ID)
+ * @return int
  */
 function SQLUpdate($table, $record, $ndx = 'ID')
 {
@@ -445,75 +518,113 @@ function SQLUpdate($table, $record, $ndx = 'ID')
  *
  * If ID field is defined record will be updated else it will be inserted
  *
- * @param string $table table to update
- * @param string $record record to update
+ * @param string $table  Table to update
+ * @param array  $record Record to update
+ * @param mixed  $ndx    Update or insert by this key (default ID)
  * @global object mysql database object
+ * @return int
  */
-function SQLUpdateInsert($table, &$record, $ndx = 'ID') 
+function SQLUpdateInsert($table, &$record, $ndx = 'ID')
 {
    global $db;
  
-   if (IsSet($record["ID"])) 
+   if (isset($record[$ndx]))
+   {
       return $db->Update($table, $record, $ndx);
-   else 
+   }
+   else
+   {
       $record[$ndx] = $db->Insert($table, $record);
-      return $record["ID"];
+      return $record[$ndx];
+   }
 }
 
 /**
+ * Alias for SQLUpdateInsert
  * Execute SQL UPDATE or INSERT query for one record
  *
  * If ID field is defined record will be updated else it will be inserted
  *
- * @param string $table table to update
- * @param string $record record to update
+ * @param string $table  Table to update
+ * @param array  $record Record to update
+ * @param mixed  $ndx    Update or insert by this key (default ID)
  * @global object mysql database object
+ * @return int
  */
-function SQLInsertUpdate($table, &$record, $ndx = 'ID') 
+function SQLInsertUpdate($table, &$record, $ndx = 'ID')
 {
    return SQLUpdateInsert($table, $record, $ndx);
 }
 
 /**
+* Title
+*
+* Description
+*
+* @access public
+*/
+ function SQLGetFields($table) {
+  $result = SQLExec("SHOW FIELDS FROM $table");  
+  $res=array();
+  while ($rec = mysql_fetch_array($result, MYSQL_ASSOC))
+   {
+   $res[] = $rec;
+  }
+  return $res;
+ }
+
+ function SQLGetIndexes($table) {
+  $result = SQLExec("SHOW INDEX FROM $table");  
+  $res=array();
+  while ($rec = mysql_fetch_array($result, MYSQL_ASSOC))
+   {
+   $res[] = $rec;
+  }
+  return $res;
+ }
+
+
+
+ function SQLPing() {
+  global $db;
+  return $db->Ping();
+ }
+
+
+/**
  * Converts date format from YYYY/MM/DD to MM/DD/YYYY
- *
- * 
- *
- * @param string $source source date to convert
- * @param string $delim source delimiter
- * @param string $dst_delim destination delimiter
+ * @param mixed $source    Source date
+ * @param mixed $delim     Source delimiter
+ * @param mixed $dst_delim Destination delimiter
+ * @return string
  */
 function fromDBDate($source, $delim = '-', $dst_delim = '/')
 {
    $tmp = explode($delim, $source);
    
-   for($i = 0; $i < count($tmp); $i++)
-   {
-      if ($tmp[$i] < 10) 
-         $tmp[$i] = '0' . (int)$tmp[$i];
-      
-   }
-   
-   return ($tmp[1]) . $dst_delim . ($tmp[2]) . $dst_delim . ($tmp[0]);
+   $str  = str_pad($tmp[1], 2, "0", STR_PAD_LEFT) . $dst_delim;
+   $str .= str_pad($tmp[2], 2, "0", STR_PAD_LEFT) . $dst_delim;
+   $str .= str_pad($tmp[0], 2, "0", STR_PAD_LEFT);
+
+   return $str;
 }
 
 /**
  * Converts date format from MM/DD/YYYY to YYYY-MM-DD
  *
- * @param string $source source date to convert
- * @param string $delim source delimiter
- * @param string $dst_delim destination delimiter
+ * @param string $source    Source date to convert
+ * @param string $delim     Source delimiter
+ * @param string $dst_delim Destination delimiter
+ * @return string
  */
-function toDBDate($source, $delim = '/', $dst_delim = '-') 
+function toDBDate($source, $delim = '/', $dst_delim = '-')
 {
    $tmp = explode($delim, $source);
    
-   for($i = 0; $i < count($tmp); $i++)
-   {
-      if ($tmp[$i] < 10) 
-         $tmp[$i] = '0' . (int)$tmp[$i];
-   }
+   $str  = str_pad($tmp[2], 2, "0", STR_PAD_LEFT) . $dst_delim;
+   $str .= str_pad($tmp[0], 2, "0", STR_PAD_LEFT) . $dst_delim;
+   $str .= str_pad($tmp[1], 2, "0", STR_PAD_LEFT);
    
-   return ($tmp[2]) . $dst_delim . ($tmp[0]) . $dst_delim . ($tmp[1]);
+   return $str;
 }
 

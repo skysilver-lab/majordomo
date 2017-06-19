@@ -138,12 +138,12 @@ function run() {
         $code = $rec['CODE'];
         $success = eval($code);
         if ($success === false) {
-          getLogger($this)->error(sprintf('Error in script "%s". Code: %s', $rec['TITLE'], $code));
-          registerError('script', sprintf('Error in script "%s". Code: %s', $rec['TITLE']));
+          //getLogger($this)->error(sprintf('Error in script "%s". Code: %s', $rec['TITLE'], $code));
+          registerError('script', sprintf('Error in script "%s". Code: %s', $rec['TITLE'], $code));
         }
         return $success;
       } catch (Exception $e) {
-        getLogger($this)->error(sprintf('Error in script "%s"', $rec['TITLE']), $e);
+        //getLogger($this)->error(sprintf('Error in script "%s"', $rec['TITLE']), $e);
         registerError('script', sprintf('Error in script "%s": '.$e->getMessage(), $rec['TITLE']));
       }
 
@@ -363,7 +363,7 @@ scripts - Scripts
 
 
  safe_execs: ID int(10) unsigned NOT NULL auto_increment
- safe_execs: COMMAND text NOT NULL DEFAULT ''
+ safe_execs: COMMAND text
  safe_execs: EXCLUSIVE int(3) NOT NULL DEFAULT 0
  safe_execs: PRIORITY int(10) NOT NULL DEFAULT 0
  safe_execs: ADDED datetime

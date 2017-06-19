@@ -35,6 +35,24 @@ $lastest_word = current(SQLSelectOne($sqlQuery));
 
 if ($qry != '' && $qry != $lastest_word)
 {
+
+   global $terminal;
+   if ($terminal) {
+    $session->data['TERMINAL']=$terminal;
+   }
+
+   $terminals=SQLSelect("SELECT * FROM terminals ORDER BY TITLE");
+   $total=count($terminals);
+   for($i=0;$i<$total;$i++) {
+    if ($terminals[$i]['HOST']!='' && $_SERVER['REMOTE_ADDR']==$terminals[$i]['HOST'] && !$session->data['TERMINAL']) {
+     $session->data['TERMINAL']=$terminals[$i]['NAME'];
+    }
+    if (mb_strtoupper($terminals[$i]['NAME'], 'UTF-8')==mb_strtoupper($session->data['TERMINAL'], 'UTF-8')) {
+     $terminal_rec=$terminals[$i];
+    }
+   }
+
+
    if (!$session->data['logged_user'])
    {
       $user    = SQLSelectOne("SELECT ID FROM users ORDER BY ID");
@@ -44,6 +62,8 @@ if ($qry != '' && $qry != $lastest_word)
    {
       $user_id = $session->data['logged_user'];
    }
+
+   if (isset($params['user_id'])) { $user_id = $params['user_id']; } 
 
    include_once(DIR_MODULES . 'patterns/patterns.class.php');
    
@@ -56,25 +76,46 @@ if ($qry != '' && $qry != $lastest_word)
    {
       $room_id = 0;
 
-      $rec = array();
+      $say_source='';
+      if ($terminal_rec['ID']) {
+       $say_source='terminal'.$terminal_rec['ID'];
+       $terminal_rec['LATEST_ACTIVITY']=date('Y-m-d H:i:s');
+       $terminal_rec['LATEST_REQUEST_TIME']=$terminal_rec['LATEST_ACTIVITY'];
+       $terminal_rec['LATEST_REQUEST']=$rec['MESSAGE'];
+       $terminal_rec['IS_ONLINE']=1;
+       SQLUpdate('terminals', $terminal_rec);
+      }
 
+      if ($source) {
+       $say_source=$source;
+      }
+
+      say(htmlspecialchars($qrys[$i]), 0, $user_id, $say_source);
+
+      /*
+      $rec = array();
       $rec['ROOM_ID']   = (int)$room_id;
       $rec['MEMBER_ID'] = $user_id;
       $rec['MESSAGE']   = htmlspecialchars($qrys[$i]);
       $rec['ADDED']     = date('Y-m-d H:i:s');
-      
       SQLInsert('shouts', $rec);
 
       $res = $pt->checkAllPatterns($rec['MEMBER_ID']);
       
       if (!$res)
          processCommand($qrys[$i]);
+         */
    }
-
-   // Header("Location:command.php");
-   // exit;
+   SQLExec('UPDATE terminals SET IS_ONLINE=0 WHERE LATEST_ACTIVITY < (NOW() - INTERVAL 30 MINUTE)');
+   
 }
 
+if (!headers_sent())
+{
+   header("HTTP/1.0: 200 OK\n");
+   header('Content-Type: text/html; charset=utf-8');
+   header('Access-Control-Allow-Origin: *');  
+}
 ?>
 
 <html>
@@ -118,8 +159,16 @@ $sqlQuery = "SELECT shouts.*, UNIX_TIMESTAMP(shouts.ADDED) as TM, users.NAME
 $res   = SQLSelect($sqlQuery);
 $total = count($res);
 
+$latest_date='';
+
 for ($i = 0; $i < $total; $i++)
 {
+
+  if (date('Y-m-d',$res[$i]['TM'])!=$latest_date) {
+   $latest_date=date('Y-m-d',$res[$i]['TM']);
+   echo "<h2>$latest_date</h2>\n\n";
+  }
+
    if ($res[$i]['MEMBER_ID'] == 0)
       $res[$i]['NAME'] = 'Alice';
    

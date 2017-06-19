@@ -143,7 +143,8 @@ if (isset($_REQUEST['latitude']))
 
    $rec = array();
    
-   $rec['ADDED']     = ($time) ? $time : date('Y-m-d H:i:s');
+   //$rec['ADDED']     = ($time) ? $time : date('Y-m-d H:i:s');
+   $rec['ADDED']     = date('Y-m-d H:i:s');
    $rec['LAT']       = $_REQUEST['latitude'];
    $rec['LON']       = $_REQUEST['longitude'];
    $rec['ALT']       = round($_REQUEST['altitude'], 2);
@@ -218,6 +219,15 @@ if (isset($_REQUEST['latitude']))
          $locations[$i]['RANGE'] = GPS_LOCATION_RANGE_DEFAULT;
       
       $distance = calculateTheDistance($lat, $lon, $locations[$i]['LAT'], $locations[$i]['LON']);
+
+      if ($locations[$i]['IS_HOME'] && $device['ID']) {
+       $device['HOME_DISTANCE']=(int)$distance;
+       SQLUpdate('gpsdevices', $device);
+       if ($user['LINKED_OBJECT']) {
+        setGlobal($user['LINKED_OBJECT'] . '.HomeDistance', $device['HOME_DISTANCE']);
+        setGlobal($user['LINKED_OBJECT'] . '.HomeDistanceKm', round($device['HOME_DISTANCE']/1000, 1));
+       }
+      }
       
       //echo ' (' . $locations[$i]['LAT'] . ' : ' . $locations[$i]['LON'] . ') ' . $distance . ' m';
       if ($distance <= $locations[$i]['RANGE'])

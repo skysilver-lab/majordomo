@@ -24,6 +24,8 @@ $dictionary=array(
 'FRONTEND'=>'Веб-сайт',
 'MY_ACCOUNT'=>'Мой аккаунт',
 'LOGOFF'=>'Выйти',
+'CONSOLE'=>'Консоль',
+'CONSOLE_RETRY'=>'Повтор',
 'MODULE_DESCRIPTION'=>'Описание модуля',
 
 'GENERAL_SENSORS'=>'Сенсоры',
@@ -77,6 +79,11 @@ $dictionary=array(
 'APP_CALENDAR'=>'Календарь',
 'APP_READIT'=>'Присл. ссылки',
 'APP_QUOTES'=>'Цитаты',
+'APP_ALARMCLOCK'=>'Будильник',
+'APP_OPENWEATHER'=>'Погода от OpenWeatherMap',
+'SYS_DATEFORMAT'=>'Формат даты',
+'APP_YATRAFFIC'=>'Яндекс.Пробки',
+'APP_CHATBOX'=>'Сообщения',
 
 'MODULE_OBJECTS_HISTORY'=>'История объектов',
 'MODULE_BT_DEVICES'=>'Bluetooth-устройства',
@@ -114,7 +121,8 @@ $dictionary=array(
 'MODULE_MODULES'=>'Модули', 
 'MODULE_USERLOG'=>'Журнал действий', 
 
-'SCENE_HIDDEN'=>'Не включать в список переключающихся сцен', 
+'SCENE_HIDDEN'=>'Не включать в список переключающихся сцен',
+'SCENE_AUTO_SCALE'=>'Автоматически изменять размер сцены по ширине экрана',
 
 'SETUP'=>'Настроить', 
 
@@ -149,7 +157,6 @@ $dictionary=array(
 
 
 'BY_URL'=>'По ссылке', 
-'TEST'=>'Проверка', 
 
 
 'COMMAND_LINE'=>'Через командную строку', 
@@ -292,6 +299,7 @@ $dictionary=array(
 
 'TEXT_BOX'=>'Текстовое поле', 
 'DATE_BOX'=>'Дата', 
+'COLOR_PICKER'=>'Выбор цвета', 
 
 
 'CUSTOM_HTML_BOX'=>'HTML-блок', 
@@ -305,7 +313,8 @@ $dictionary=array(
 
 
 'STEP_VALUE'=>'Шаг изменений', 
-'DATA'=>'Данные', 
+'DATA'=>'Данные',
+'INTERFACE'=>'Интерфейс', 
 
 
 'AUTO_UPDATE_PERIOD'=>'Период автообновления',
@@ -772,6 +781,14 @@ $dictionary=array(
 
 'SWITCH_SCENE_WHEN_ACTIVATED'=>'переключить на сцену при активации', 
 
+'APPEAR_ANIMATION'=>'Анимация появления', 
+'APPEAR_LEFTTORIGHT'=>'Слева-на-право', 
+'APPEAR_RIGHTTOLEFT'=>'Справа-на-лево', 
+'APPEAR_TOPTOBOTTOM'=>'Сверху-вниз', 
+'APPEAR_BOTTOMTOTOP'=>'Снизу-вверх', 
+'APPEAR_BLINK'=>'Моргание', 
+'APPEAR_SCALE'=>'Масштаб', 
+
 
 'ADD_NEW_ELEMENT'=>'Добавить новый элемент', 
 'ELEMENTS'=>'Элементы', 
@@ -813,7 +830,7 @@ $dictionary=array(
 'LOCATIONS'=>'Места', 
 'DEVICES'=>'Устройства', 
 'ACTIONS'=>'Действия', 
-
+'HOME_LOCATION'=>'Дом (место)', 
 
 'ACTION_TYPE'=>'Тип действия', 
 'EXECUTED'=>'Выполнено', 
@@ -1014,8 +1031,17 @@ $dictionary=array(
 'PATTERN_CONDITIONAL'=>'На основе значений свойств',
 'CONDITION'=>'Условие',
 'ADD_EXIT_CODE'=>'Добавить код "выхода"',
+'ADVANCED_CONFIG'=>'Расширенная настройка',
 'UPDATE_ALL_EXTENSIONS'=>'Обновить все установленные дополнения',
 
+'SAVE_CHANGES'=>'Сохранить изменения',
+'ADD_PANE'=>'Добавить панель',
+
+    'DATA_KEY' => 'Ключевые данные',
+    'DATA_TYPE' => 'Тип данных',
+    'DATA_TYPE_GENERAL' => 'Общий формат',
+    'CLASS_TEMPLATE' => 'Шаблон отображения',
+    
 'TEST'=>'test'
 
 

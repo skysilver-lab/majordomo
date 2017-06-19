@@ -29,36 +29,36 @@ function app_mediabrowser() {
 *
 * @access public
 */
-function saveParams() {
- $p=array();
+function saveParams($data=1) {
+ $data=array();
  if (IsSet($this->id)) {
-  $p["id"]=$this->id;
+  $data["id"]=$this->id;
  }
  if (IsSet($this->view_mode)) {
-  $p["view_mode"]=$this->view_mode;
+  $data["view_mode"]=$this->view_mode;
  }
  if (IsSet($this->edit_mode)) {
-  $p["edit_mode"]=$this->edit_mode;
+  $data["edit_mode"]=$this->edit_mode;
  }
  if (IsSet($this->tab)) {
-  $p["tab"]=$this->tab;
+  $data["tab"]=$this->tab;
  }
  if (IsSet($this->mode)) {
-  $p["mode"]=$this->mode;
+  $data["mode"]=$this->mode;
  }
  if (IsSet($this->collection_id)) {
-  $p["collection_id"]=$this->collection_id;
+  $data["collection_id"]=$this->collection_id;
  }
  if (IsSet($this->folder)) {
-  $p["folder"]=$this->folder;
+  $data["folder"]=$this->folder;
  }
 
 
  if (IsSet($this->showplayer)) {
-  $p["showplayer"]=$this->showplayer;
+  $data["showplayer"]=$this->showplayer;
  }
 
- return parent::saveParams($p);
+ return parent::saveParams($data);
 }
 /**
 * getParams
@@ -367,16 +367,17 @@ function usual(&$out) {
       if($run_linux){
           $out['FILE']=$file;
           $out['BASEFILE']=basename($file);
-          $file=str_replace('/', '\\\\', $file);
+          //$file=str_replace('/', '\\', $file);
           $out['FULLFILE']=addslashes($path).$file;
       } else {
           $out['FILE']=win2utf($file);
           $out['BASEFILE']=win2utf(basename($file));
-          $file=str_replace('/', '\\\\', $file);
-          $out['FULLFILE']=win2utf(addslashes($path).$file);
+          $file=str_replace('/', '\\', $file);
+          $out['FULLFILE']=win2utf(($path).$file);
       }
 
-   $out['FULLFILE_S']=str_replace('\\\\', '\\', $out['FULLFILE']);
+   //$out['FULLFILE_S']=str_replace('\\\\', '\\', $out['FULLFILE']);
+   $out['FULLFILE_S']=$out['FULLFILE'];
 
    if ($this->mode=='play') {
     //FULLFILE_S
@@ -538,8 +539,9 @@ function usual(&$out) {
 
     $rec['REAL_PATH']=($folder.$file);
     $rec['PATH']=urlencode($folder.$file);
-    $rec['FULL_PATH']=urlencode(str_replace('\\\\', '\\', $act_dir).$file);
-    $size=filesize($act_dir.$file);
+    //$rec['FULL_PATH']=urlencode(str_replace('\\\\', '\\', $act_dir).$file);
+    $rec['FULL_PATH']=urlencode($act_dir.$file);
+    $size=@filesize($act_dir.$file);
     $total_size+=$size;
     if ($size>1024) {
      if ($size>1024*1024) {
@@ -565,12 +567,16 @@ function usual(&$out) {
    $total=count($files);
    $out['TOTAL_FILES']=$total;
    for($i=0;$i<$total;$i++) {
-    if (preg_match('/\.jpg$/is', $files[$i]['PATH'])) {
+    if (preg_match('/\.jpg$/is', $files[$i]['PATH']) || preg_match('/\.jpeg$/is', $files[$i]['PATH']) || preg_match('/\.png$/is', $files[$i]['PATH'])) {
      $files[$i]['IS_FOTO']=1;
+     $total_photos++;
     }
     if (($i+1)%4==0) {
      $files[$i]['NEWROW']=1;
     }
+   }
+   if ($total_photos==$total) {
+    $out['LIST_MODE']='foto';
    }
    $out['FILES']=$files;
   }
@@ -593,31 +599,50 @@ function usual(&$out) {
 
 }
 
- function getDescriptions($dir) {
-  $descr=array();
-  if (file_exists($dir."Descript.ion")) {
-   $data=LoadFile($dir."Descript.ion");
-   $strings=explode("\n", $data);
-   for($i=0;$i<count($strings);$i++) {
-    $fields=explode("\t", $strings[$i]);
-    $filename=$fields[0];
-    $filename=str_replace("\"", "", $filename);
-    $description=$fields[1];
-    $descr[$filename]=$description;
-   }
-  }
-  return $descr;
- }
+   function getDescriptions($dir)
+   {
+      $descr = array();
 
- function setDescription($dir, $file, $descr) {
-  $descriptions=getDescriptions($dir);
-  $descriptions[$file]=$descr;
-  $data=array();
-  foreach($descriptions as $k=>$v) {
-   $data[]="\"$k\"\t$v";
-  }
-  SaveFile($dir."Descript.ion", join("\n", $data));
- }
+      if (file_exists($dir . "Descript.ion"))
+      {
+         $data    = LoadFile($dir . "Descript.ion");
+         $strings = explode("\n", $data);
+         $strCnt  = count($strings);
+
+         for ($i = 0; $i < $strCnt; $i++)
+         {
+            $fields      = explode("\t", $strings[$i]);
+            $filename    = str_replace("\"", "", $fields[0]);
+            $description = $fields[1];
+
+            $descr[$filename] = $description;
+         }
+      }
+
+      return $descr;
+   }
+
+/**
+ * Set directory description
+ * @param mixed $dir   Directory
+ * @param mixed $file  File
+ * @param mixed $descr Description
+ */
+function setDescription($dir, $file, $descr)
+{
+   $descriptions = self::getDescriptions($dir);
+   
+   $descriptions[$file] = $descr;
+   
+   $data = array();
+  
+   foreach($descriptions as $k => $v)
+   {
+      $data[] = "\"$k\"\t$v";
+   }
+   
+   SaveFile($dir . "Descript.ion", join("\n", $data));
+}
 
 
  /**
@@ -647,7 +672,7 @@ function usual(&$out) {
       || preg_match('/\.gif$/is', $file)
       || preg_match('/\.png$/is', $file)
    ) {
-    $file_size=filesize($path.$file);
+    $file_size=@filesize($path.$file);
     if ($file_size>$biggest_size) {
      $biggest_size=$file_size;
      $biggest_file=$file;

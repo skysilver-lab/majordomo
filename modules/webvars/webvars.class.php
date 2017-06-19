@@ -277,12 +277,11 @@ function usual(&$out) {
    }
    
    if (!$ok) {
-
-    $host['LOG'].=date('Y-m-d H:i:s').' incorrect value:'.$new_status."\n";
+    $host['LOG']=date('Y-m-d H:i:s').' incorrect value:'.$new_status."\n".$host['LOG'];
     $tmp=explode("\n", $host['LOG']);
     $total=count($tmp);
     if ($total>50) {
-     $tmp=array_slice($tmp, -50, 50);
+     $tmp=array_slice($tmp, 0, 50);
      $host['LOG']=implode("\n", $tmp);
     }
     SQLUpdate('webvars', $host);
@@ -298,7 +297,7 @@ function usual(&$out) {
      $tmp=explode("\n", $host['LOG']);
      $total=count($tmp);
      if ($total>50) {
-      $tmp=array_slice($tmp, -50, 50);
+      $tmp=array_slice($tmp, 0, 50);
       $host['LOG']=implode("\n", $tmp);
      }
    }
@@ -389,7 +388,7 @@ webvars - webvars
  webvars: TYPE int(30) NOT NULL DEFAULT '0'
  webvars: SEARCH_PATTERN varchar(255) NOT NULL DEFAULT ''
  webvars: CHECK_PATTERN varchar(255) NOT NULL DEFAULT ''
- webvars: LATEST_VALUE text NOT NULL DEFAULT ''
+ webvars: LATEST_VALUE text
  webvars: CHECK_LATEST datetime
  webvars: CHECK_NEXT datetime
  webvars: SCRIPT_ID int(10) NOT NULL DEFAULT '0'
