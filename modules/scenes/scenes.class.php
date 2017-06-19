@@ -504,10 +504,22 @@ function usual(&$out) {
       $this->data[$k]=$v;
      }
 
-     $states=SQLSelect("SELECT elm_states.ID, elm_states.TITLE, elm_states.HTML, elements.SCENE_ID, elm_states.SWITCH_SCENE, elements.TYPE FROM elm_states, elements, scenes WHERE elements.SCENE_ID=scenes.ID AND elm_states.ELEMENT_ID=elements.ID AND $qry ORDER BY elements.PRIORITY DESC, elm_states.PRIORITY DESC");
+
+      $states=array();
+      $elements=$this->getDynamicElements($qry);
+      $total=count($elements);
+      for($i=0;$i<$total;$i++) {
+       if (is_array($elements[$i]['STATES'])) {
+        foreach($elements[$i]['STATES'] as $st) {
+         $states[]=$st;
+        }
+       }
+      }
+
      $total=count($states);
+
      for($i=0;$i<$total;$i++) {
-      $states[$i]['STATE']=$this->checkState($states[$i]['ID']);
+      $states[$i]['STATE']=(string)$this->checkState($states[$i]['ID']);
       if ($states[$i]['HTML']!='') {
        if (preg_match('/\[#modul/is', $states[$i]['HTML'])) {
         //$states[$i]['HTML']=str_replace('#', '', $states[$i]['HTML']);
@@ -524,9 +536,29 @@ function usual(&$out) {
     }
     if ($op=='click') {
      global $id;
-     $state=SQLSelectOne("SELECT * FROM elm_states WHERE ID='".$id."'");
+
+
+     if (preg_match('/(\d+)\_(\d+)/', $id, $m)) {
+      $dynamic_item=1;
+      $real_part=$m[1];
+      $object_part=$m[2];
+      if ($object_part) {
+       $object_rec=SQLSelectOne("SELECT ID, TITLE FROM objects WHERE ID=".(int)($object_part));
+      }
+     } else {
+      $dynamic_item=0;
+      $real_part=$id;
+      $object_part=0;
+     }
+
+
+     $state=SQLSelectOne("SELECT * FROM elm_states WHERE ID='".(int)$real_part."'");
+
      $params=array('STATE'=>$state['TITLE']);
      if ($state['ACTION_OBJECT'] && $state['ACTION_METHOD']) {
+      if ($object_part) {
+       $state['ACTION_OBJECT']=$object_rec['TITLE'];
+      }
       callMethod($state['ACTION_OBJECT'].'.'.$state['ACTION_METHOD'], $params);
      }
      if ($state['SCRIPT_ID']) {
@@ -545,12 +577,25 @@ function usual(&$out) {
                    registerError('scenes', get_class($e).', '.$e->getMessage());
                   }
      }
+
      $qry="1";
      $qry.=" AND elements.ID=".$state['ELEMENT_ID'];
-     $states=SQLSelect("SELECT elm_states.ID, elm_states.TITLE, elm_states.HTML, elements.SCENE_ID, elm_states.SWITCH_SCENE, elements.TYPE FROM elm_states, elements, scenes WHERE elements.SCENE_ID=scenes.ID AND elm_states.ELEMENT_ID=elements.ID AND $qry ORDER BY elements.PRIORITY DESC, elm_states.PRIORITY DESC");
+     //$states=SQLSelect("SELECT elm_states.ID, elm_states.TITLE, elm_states.HTML, elements.SCENE_ID, elm_states.SWITCH_SCENE, elements.TYPE FROM elm_states, elements, scenes WHERE elements.SCENE_ID=scenes.ID AND elm_states.ELEMENT_ID=elements.ID AND $qry ORDER BY elements.PRIORITY DESC, elm_states.PRIORITY DESC");
+
+      $states=array();
+      $elements=$this->getDynamicElements($qry);
+      $total=count($elements);
+      for($i=0;$i<$total;$i++) {
+       if (is_array($elements[$i]['STATES'])) {
+        foreach($elements[$i]['STATES'] as $st) {
+         $states[]=$st;
+        }
+       }
+      }
+
      $total=count($states);
      for($i=0;$i<$total;$i++) {
-      $states[$i]['STATE']=$this->checkState($states[$i]['ID']);
+      $states[$i]['STATE']=(string)$this->checkState($states[$i]['ID']);
       if ($states[$i]['HTML']!='') {
        $states[$i]['HTML']=processTitle($states[$i]['HTML'], $this);
       }
@@ -795,7 +840,24 @@ function usual(&$out) {
 * @access public
 */
  function checkState($id) {
-  $rec=SQLSelectOne("SELECT * FROM elm_states WHERE ID='".$id."'");
+
+    if (preg_match('/(\d+)\_(\d+)/', $id, $m)) {
+     $dynamic_item=1;
+     $real_part=$m[1];
+     $object_part=$m[2];
+     if ($object_part) {
+      $object_rec=SQLSelectOne("SELECT ID, TITLE FROM objects WHERE ID=".(int)($object_part));
+     }
+    } else {
+     $dynamic_item=0;
+     $real_part=$id;
+     $object_part=0;
+    }
+
+
+  $rec=SQLSelectOne("SELECT * FROM elm_states WHERE ID='".$real_part."'");
+
+  $original_linked_object=$rec['LINKED_OBJECT'];
 
   if (!checkAccess('scene_elements', $rec['ELEMENT_ID'])) {
    $status=0;
@@ -810,6 +872,9 @@ function usual(&$out) {
   } elseif ($rec['IS_DYNAMIC']==1) {
 
    if ($rec['LINKED_OBJECT']!='' && $rec['LINKED_PROPERTY']!='') {
+    if ($dynamic_item) {
+     $rec['LINKED_OBJECT']=$object_rec['TITLE'];
+    }
     $value=gg(trim($rec['LINKED_OBJECT']).'.'.trim($rec['LINKED_PROPERTY']));
    } elseif ($rec['LINKED_PROPERTY']!='') {
     $value=gg($rec['LINKED_PROPERTY']);
@@ -826,6 +891,9 @@ function usual(&$out) {
 
 
    if (is_integer(strpos($rec['CONDITION_VALUE'], "%"))) {
+    if ($dynamic_item) {
+     $rec['CONDITION_VALUE']=str_replace('%'.$original_linked_object.'.', '%'.$object_rec['TITLE'].'.', $rec['CONDITION_VALUE']);
+    }
     $rec['CONDITION_VALUE']=processTitle($rec['CONDITION_VALUE']);
    }
 
@@ -846,6 +914,9 @@ function usual(&$out) {
    $display=0;
 
    if (is_integer(strpos($rec['CONDITION_ADVANCED'], "%"))) {
+    if ($dynamic_item) {
+     $rec['CONDITION_ADVANCED']=str_replace('%'.$original_linked_object.'.', '%'.$object_rec['TITLE'].'.', $rec['CONDITION_ADVANCED']);
+    }
     $rec['CONDITION_ADVANCED']=processTitle($rec['CONDITION_ADVANCED']);
    }
 
@@ -866,7 +937,7 @@ function usual(&$out) {
   }
   endMeasure('state_dynamic'.$rec['IS_DYNAMIC']);
 
-  if ($rec['CURRENT_STATE']!=$status) {
+  if ($rec['CURRENT_STATE']!=$status && !$dynamic_item) {
    startMeasure('stateUpdate');
    $rec['CURRENT_STATE']=$status;
    SQLExec('UPDATE elm_states SET CURRENT_STATE='.$rec['CURRENT_STATE'].' WHERE ID='.(int)$rec['ID']);
@@ -884,22 +955,76 @@ function usual(&$out) {
 *
 * @access public
 */
- function getElements($qry='1', $options=0) {
-      $elements=SQLSelect("SELECT * FROM elements WHERE $qry ORDER BY PRIORITY DESC, TITLE");
+ function getDynamicElements($qry='1') {
 
-      /*
+      $elements=SQLSelect("SELECT elements.* FROM elements, scenes WHERE elements.SCENE_ID=scenes.ID AND $qry ORDER BY PRIORITY DESC, TITLE");
+
       $totale=count($elements);
       $res2=array();
       for($ie=0;$ie<$totale;$ie++) {
-      if (checkAccess('scene_elements', $elements[$ie]['ID'])) {
-        $res2[]=$elements[$ie];
+       $states=SQLSelect("SELECT elm_states.*,elements.TYPE  FROM elm_states, elements WHERE elm_states.ELEMENT_ID=elements.ID AND ELEMENT_ID='".$elements[$ie]['ID']."' ORDER BY elm_states.PRIORITY DESC, elm_states.TITLE");
+       if ($elements[$ie]['SMART_REPEAT'] && !$this->action=='admin') {
+        $linked_object='';
+        if ($states[0]['LINKED_OBJECT']) {
+         $linked_object=$states[0]['LINKED_OBJECT'];
+        } elseif ($states[0]['ACTION_OBJECT']) {
+         $linked_object=$states[0]['ACTION_OBJECT'];
+        }
+
+        if ($linked_object) {
+         $obj=getObject($linked_object);
+         $objects=getObjectsByClass($obj->class_id);
+         $total_o=count($objects);
+         for($io=0;$io<$total_o;$io++) {
+          $rec=$elements[$ie];
+          $rec['ID']=$elements[$ie].'_'.$objects[$io]['ID'];
+          $new_states=array();
+          $total_s=count($states);
+          for($is=0;$is<$total_s;$is++) {
+           $state_rec=$states[$is];
+           if ($state_rec['LINKED_OBJECT']) {
+            $state_rec['LINKED_OBJECT']=$objects[$io]['TITLE'];
+           }
+           if ($state_rec['ACTION_OBJECT']) {
+            $state_rec['ACTION_OBJECT']=$objects[$io]['TITLE'];
+           }
+           if ($state_rec['HTML']) {
+            $state_rec['HTML']=str_replace('%'.$linked_object.'.', '%'.$objects[$io]['TITLE'].'.', $state_rec['HTML']);
+           }
+           $state_rec['ID']=$state_rec['ID'].'_'.$objects[$io]['ID'];
+           $new_states[]=$state_rec;
+          }
+          $rec['STATES']=$new_states;
+          $res2[]=$rec;
+         }
+
+        } else {
+         $elements[$ie]['STATES']=$states;
+         $elements[$ie]['SMART_REPEAT']=0;
+         $res2[]=$elements[$ie];
+        }
+
+       } else {
+         $elements[$ie]['STATES']=$states;
+         $res2[]=$elements[$ie];
        }
       }
-      $elements=$res2;
-      */
+      return $res2;
+
+ }
+
+/**
+* Title
+*
+* Description
+*
+* @access public
+*/
+ function getElements($qry='1', $options=0) {
+
+      $elements=$this->getDynamicElements($qry);
 
       $totale=count($elements);
-
 
       for($ie=0;$ie<$totale;$ie++) {
        if ($elements[$ie]['CSS_STYLE']) {
@@ -916,7 +1041,11 @@ function usual(&$out) {
        }
        $positions[$elements[$ie]['ID']]['TOP']=$elements[$ie]['TOP'];
        $positions[$elements[$ie]['ID']]['LEFT']=$elements[$ie]['LEFT'];
-       $states=SQLSelect("SELECT * FROM elm_states WHERE ELEMENT_ID='".$elements[$ie]['ID']."' ORDER BY PRIORITY DESC, TITLE");
+       if (IsSet($elements[$ie]['STATES'])) {
+        $states=$elements[$ie]['STATES'];
+       } else {
+        $states=SQLSelect("SELECT * FROM elm_states WHERE ELEMENT_ID='".$elements[$ie]['ID']."' ORDER BY PRIORITY DESC, TITLE");
+       }
        $total_s=count($states);
        for($is=0;$is<$total_s;$is++) {
         if ($elements[$ie]['TYPE']=='img') {
@@ -1206,6 +1335,7 @@ elm_states - Element states
  elements: PRIORITY int(10) NOT NULL DEFAULT '0'
  elements: JAVASCRIPT text
  elements: CSS text
+ elements: SMART_REPEAT int(3) NOT NULL DEFAULT '0'
 
  elm_states: ID int(10) unsigned NOT NULL auto_increment
  elm_states: ELEMENT_ID int(10) NOT NULL DEFAULT '0'

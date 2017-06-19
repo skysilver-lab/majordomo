@@ -54,6 +54,8 @@
          eval(SETTINGS_HOOK_BEFORE_SAY);
         }
 
+        processSubscriptions('SAY', array('level'=>$level, 'message'=>$ph, 'member_id'=>$member_id));
+
         global $ignoreVoice;
         if ($level >= (int)getGlobal('minMsgLevel') && !$ignoreVoice && !$member_id) { 
                 //$voicemode!='off' && 
@@ -418,7 +420,7 @@
   $jobs=SQLSelect("SELECT * FROM jobs WHERE PROCESSED=0 AND EXPIRED=0 AND RUNTIME<='".date('Y-m-d H:i:s')."'");
   $total=count($jobs);
   for($i=0;$i<$total;$i++) {
-   echo date("Y-m-d H:i:s ")." Running job: ".$jobs[$i]['TITLE']."\n";
+   echo "Running job: ".$jobs[$i]['TITLE']."\n";
    $jobs[$i]['PROCESSED']=1;
    $jobs[$i]['STARTED']=date('Y-m-d H:i:s');
    SQLUpdate('jobs', $jobs[$i]);
