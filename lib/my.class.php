@@ -28,14 +28,18 @@ function getClassNameByObject($title) {
 }
 
 // Получить ID свойства объекта по имени этого объекта и имени свойства (только для свежих версий MajorDoMo)
-function getPropertyID ($prop_name) {
-        $arr_s = SQLSelectOne("SELECT * FROM pvalues WHERE PROPERTY_NAME='".$prop_name."'");
-        if (is_array ($arr_s)) {
-                $value_id = $arr_s['ID'];
-                return $value_id;
-        } else {
-                return 'error';
-        }
+function getPropertyID ($prop_name)
+{
+   $arr_s = SQLSelectOne("SELECT * FROM pvalues WHERE PROPERTY_NAME='".$prop_name."'");
+   if (is_array ($arr_s))
+   {
+      $value_id = $arr_s['ID'];
+      return $value_id;
+   } 
+   else
+   {
+     return 'error';
+   }
 }
 
 // Получить ID свойства объекта по имени этого объекта и имени свойства
@@ -119,10 +123,12 @@ function number_pad($number,$n)
 // ch3 - часов, дней, лет, месяцев
 function chti($string, $ch1, $ch2, $ch3)
 {
-	$ff=Array('0','1','2','3','4','5','6','7','8','9');
-	if(substr($string,-2, 1)==1 AND strlen($string)>1) $ry=array("0 $ch3","1 $ch3","2 $ch3","3 $ch3" ,"4 $ch3","5 $ch3","6 $ch3","7 $ch3","8 $ch3","9 $ch3");
-	else $ry=array("0 $ch3","1 $ch1","2 $ch2","3 $ch2","4 $ch2","5 $ch3"," 6 $ch3","7 $ch3","8 $ch3"," 9 $ch3");
-	$string1=substr($string,0,-1).str_replace($ff, $ry, substr($string,-1,1));
+	$ff = Array('0','1','2','3','4','5','6','7','8','9');
+	
+	if ( substr($string,-2, 1) == 1 AND strlen($string) > 1 ) $ry = array("0 $ch3","1 $ch3","2 $ch3","3 $ch3" ,"4 $ch3","5 $ch3","6 $ch3","7 $ch3","8 $ch3","9 $ch3");
+	 else $ry = array("0 $ch3","1 $ch1","2 $ch2","3 $ch2","4 $ch2","5 $ch3","6 $ch3","7 $ch3","8 $ch3","9 $ch3");
+	
+	$string1 = substr($string,0,-1).str_replace($ff, $ry, substr($string,-1,1));
 	
 	return $string1;
 }
