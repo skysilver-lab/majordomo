@@ -19,13 +19,15 @@
  $this->callMethod('logicAction');
  $linked_room=$this->getProperty('linkedRoom');
  if ($nobodysHome) {
-  callMethodSafe('NobodyHomeMode.deactivate', array('sensor'=>$ot, 'room'=>$linked_room));
+  //callMethodSafe('NobodyHomeMode.deactivate', array('sensor'=>$ot, 'room'=>$linked_room));
+  callMethod('NobodyHomeMode.deactivate', array('sensor'=>$ot, 'room'=>$linked_room));
  }
  ClearTimeOut("nobodyHome"); 
  SetTimeOut("nobodyHome","callMethod('NobodyHomeMode.activate');", 1*60*60);
 
  if ($linked_room) {
-  callMethodSafe($linked_room.'.onActivity', array('sensor'=>$ot));
+  //callMethodSafe($linked_room.'.onActivity', array('sensor'=>$ot));
+  callMethod($linked_room.'.onActivity', array('sensor'=>$ot));
  }
 
 /*
